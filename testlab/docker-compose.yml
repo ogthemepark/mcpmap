@@ -1,0 +1,31 @@
+services:
+  mcp-noauth:
+    build: { context: ./services/mcp-noauth, dockerfile: ../Dockerfile.python }
+    ports: ["8001:8000"]
+  mcp-audience-broken:
+    build: { context: ./services/mcp-audience-broken, dockerfile: ../Dockerfile.python }
+    ports: ["8002:8000"]
+  mcp-origin-permissive:
+    build: { context: ./services/mcp-origin-permissive, dockerfile: ../Dockerfile.python }
+    ports: ["8003:8000"]
+  mcp-poisoned:
+    build: { context: ./services/mcp-poisoned, dockerfile: ../Dockerfile.python }
+    ports: ["8004:8000"]
+  mcp-unicode:
+    build: { context: ./services/mcp-unicode, dockerfile: ../Dockerfile.python }
+    ports: ["8005:8000"]
+  mcp-cmdinject:
+    build: { context: ./services/mcp-cmdinject, dockerfile: ../Dockerfile.python }
+    ports: ["8006:8000"]
+  mcp-ssrf:
+    build: { context: ./services/mcp-ssrf, dockerfile: ../Dockerfile.python }
+    ports: ["8007:8000"]
+  mcp-legacy-sse:
+    build: { context: ./services/mcp-legacy-sse, dockerfile: ../Dockerfile.python }
+    ports: ["8008:8000"]
+  mcp-honeypot:
+    build: { context: ./services/mcp-honeypot, dockerfile: ../Dockerfile.python }
+    ports: ["8009:8000"]
+  mcp-cve-figma:
+    build: { context: ./services/mcp-cve-figma, dockerfile: ../Dockerfile.python }
+    ports: ["8010:8000"]
