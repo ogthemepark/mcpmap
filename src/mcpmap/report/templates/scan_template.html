@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>mcpmap — {{SCAN_ID}}</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #0e1116; color: #e6edf3; }
+    header { padding: 12px 20px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+    main { display: flex; height: calc(100vh - 50px); }
+    #graph { flex: 1; }
+    #panel { width: 360px; padding: 16px; overflow-y: auto; border-left: 1px solid #30363d; background: #0d1117; }
+    .severity-critical { color: #ff6b6b; }
+    .severity-high     { color: #ff9e3b; }
+    .severity-medium   { color: #f1c40f; }
+    .severity-low      { color: #3fb950; }
+    .severity-info     { color: #58a6ff; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 8px; background: #21262d; font-size: 11px; margin-right: 4px; }
+    table { border-collapse: collapse; font-size: 13px; width: 100%; }
+    td, th { border: 1px solid #30363d; padding: 6px 8px; text-align: left; }
+    code { background: #21262d; padding: 2px 4px; border-radius: 3px; }
+  </style>
+  <script>{{D3_INLINE}}</script>
+</head>
+<body>
+<header>
+  <h1>mcpmap — {{SCAN_ID}}</h1>
+  <span>{{SUMMARY}}</span>
+</header>
+<main>
+  <svg id="graph" preserveAspectRatio="xMidYMid meet"></svg>
+  <aside id="panel"><p>Click a node for details.</p></aside>
+</main>
+<script>
+const data = {{DATA_JSON}};
+const sevColor = { critical: "#ff6b6b", high: "#ff9e3b", medium: "#f1c40f", low: "#3fb950", info: "#58a6ff", clean: "#6e7681" };
+function maxSev(findings){ const order=["critical","high","medium","low","info"]; for (const s of order){ if (findings.some(f=>f.severity===s)) return s; } return "clean"; }
+function render(){
+  const svg = d3.select("#graph"), W = window.innerWidth - 360, H = window.innerHeight - 50;
+  svg.attr("viewBox", [0,0,W,H]);
+  const nodes = data.servers.map(s => ({ id: s.url, fp: s.fingerprint_id, info: s.server_info, findings: data.findings[s.url] || [], severity: maxSev(data.findings[s.url] || []) }));
+  const fpGroups = {};
+  for (const n of nodes){ const k = n.fp || "unknown"; (fpGroups[k] ||= []).push(n); }
+  const links = [];
+  for (const [k, list] of Object.entries(fpGroups)){
+    for (let i=1;i<list.length;i++){ links.push({source:list[0].id, target:list[i].id, kind: k}); }
+  }
+  const sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d=>d.id).distance(80))
+    .force("charge", d3.forceManyBody().strength(-260))
+    .force("center", d3.forceCenter(W/2, H/2));
+  const link = svg.append("g").attr("stroke", "#30363d").selectAll("line").data(links).join("line");
+  const node = svg.append("g").selectAll("circle").data(nodes).join("circle")
+    .attr("r", d => 6 + (d.findings.length * 2))
+    .attr("fill", d => sevColor[d.severity])
+    .style("cursor", "pointer")
+    .call(d3.drag().on("start", (e,d)=>{ if (!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+                    .on("drag",  (e,d)=>{ d.fx=e.x; d.fy=e.y; })
+                    .on("end",   (e,d)=>{ if (!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }))
+    .on("click", (_, d) => showPanel(d));
+  node.append("title").text(d => d.id);
+  sim.on("tick", () => {
+    link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+    node.attr("cx", d => d.x).attr("cy", d => d.y);
+  });
+}
+function showPanel(d){
+  const p = document.getElementById("panel");
+  const info = d.info || {};
+  const rows = d.findings.map(f =>
+    `<tr><td><code>${f.check}</code></td><td class="severity-${f.severity}">${f.severity}</td><td>${f.cvss ?? "-"}</td><td>${f.title}</td></tr>`
+  ).join("") || "<tr><td colspan=4>No findings</td></tr>";
+  p.innerHTML = `
+    <h3>${d.id}</h3>
+    <p><span class="pill">${d.fp || "unknown"}</span> <span class="pill">${info.name || ""} ${info.version || ""}</span></p>
+    <table><thead><tr><th>Check</th><th>Severity</th><th>CVSS</th><th>Title</th></tr></thead><tbody>${rows}</tbody></table>
+  `;
+}
+render();
+</script>
+</body>
+</html>
