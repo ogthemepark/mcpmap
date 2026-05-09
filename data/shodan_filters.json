@@ -1,0 +1,94 @@
+{
+  "description": "Forked from Knostic Inc.'s MCP-Scanner (https://github.com/knostic/MCP-Scanner, MIT). Used for Shodan-based MCP server discovery in mcpmap.",
+  "version": "1.0.0",
+  "filters": {
+    "core_mcp": [
+      "\"Model Context Protocol\"",
+      "\"model context protocol\"",
+      "MCP server",
+      "mcp-server",
+      "MCPServer",
+      "\"mcp server\""
+    ],
+    "transport_layer": [
+      "text/event-stream",
+      "content-type: text/event-stream",
+      "Server-Sent Events",
+      "event-stream"
+    ],
+    "jsonrpc_markers": [
+      "\"jsonrpc\": \"2.0\"",
+      "jsonrpc 2.0",
+      "JSON-RPC 2.0",
+      "\"method\": \"initialize\"",
+      "\"method\": \"tools/list\"",
+      "\"method\": \"tools/call\""
+    ],
+    "protocol_version": [
+      "\"protocolVersion\": \"2024-11-05\"",
+      "protocolVersion 2024-11-05",
+      "2024-11-05"
+    ],
+    "endpoints": [
+      "GET /mcp",
+      "POST /mcp",
+      "GET /sse",
+      "POST /messages",
+      "/mcp/sse",
+      "/api/mcp",
+      "/v1/mcp"
+    ],
+    "initialization": [
+      "\"clientInfo\"",
+      "\"serverInfo\"",
+      "initialize capabilities",
+      "capabilities tools resources",
+      "tools resources"
+    ],
+    "frameworks": [
+      "FastAPI mcp",
+      "fastapi mcp",
+      "FastMCP",
+      "fastmcp",
+      "uvicorn mcp",
+      "mcp-framework",
+      "python-mcp",
+      "mcp-python",
+      "anthropic/mcp"
+    ],
+    "port_specific": [
+      "port:3000 jsonrpc",
+      "port:8000 jsonrpc",
+      "port:8080 jsonrpc",
+      "port:5000 jsonrpc",
+      "port:3000 text/event-stream",
+      "port:8000 text/event-stream",
+      "port:8080 text/event-stream",
+      "port:5000 text/event-stream"
+    ],
+    "cloud_platforms": [
+      "cloudflare mcp",
+      "workers.dev mcp",
+      "vercel mcp",
+      "heroku mcp",
+      "railway mcp"
+    ],
+    "tools_and_methods": [
+      "tools/list",
+      "tools/call",
+      "resources/list",
+      "resources/read",
+      "prompts/list"
+    ],
+    "broad_searches": [
+      "mcp",
+      "model context",
+      "context protocol"
+    ]
+  },
+  "notes": {
+    "usage": "These filters are used by the MCP Scanner to discover potential MCP servers via Shodan API",
+    "caution": "The 'broad_searches' category may return many false positives and should be used carefully",
+    "customization": "You can add new categories or filters to extend the search capabilities"
+  }
+} 
