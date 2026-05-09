@@ -40,4 +40,10 @@ class Honeypot001(BaseCheck):
             title="Likely honeypot — suppress in operator triage",
             evidence={"signals": signals, "sample_session_ids": sids[:3]},
             repro="Reconnect 3+ times; observe identical Mcp-Session-Id and/or empty tools/list.",
+            remediation=(
+                "Operator note: this is a honeypot indicator, not a vulnerability in "
+                "your code. If this server is yours and the signal is a false positive, "
+                "use distinct Mcp-Session-Id values per connection. If the server is "
+                "not yours, treat any other findings on this URL as low-confidence."
+            ),
         )

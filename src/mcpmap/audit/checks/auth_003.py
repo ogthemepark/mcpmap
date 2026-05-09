@@ -26,6 +26,12 @@ class Auth003OriginValidation(BaseCheck):
                             title="Origin header not validated (DNS-rebinding risk)",
                             evidence={"sent_origin": EVIL_ORIGIN, "status": r.status, "response_excerpt": text[:256]},
                             repro=f"curl -X POST {server.url} -H 'Origin: {EVIL_ORIGIN}' -d '{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}}'",
+                            remediation=(
+                                "Validate the Origin header against an explicit allowlist before "
+                                "accepting the request; for localhost-only servers, bind to 127.0.0.1 "
+                                "(not 0.0.0.0) and require Origin to be 'http://localhost' or a known "
+                                "client UI. Mitigates DNS-rebinding."
+                            ),
                         )
         except aiohttp.ClientError:
             return None

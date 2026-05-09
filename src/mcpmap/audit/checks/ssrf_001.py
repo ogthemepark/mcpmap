@@ -38,4 +38,11 @@ class Ssrf001ResourcesRead(BaseCheck):
             title="resources/read accepts dangerous URI schemes (SSRF / local-file disclosure)",
             evidence={"hits": hits},
             repro="Replay any hit URI via tools/call resources/read.",
+            remediation=(
+                "Restrict resources/read URI schemes to a strict allowlist. For file://, "
+                "constrain to specific directories the server is meant to expose. For "
+                "http(s)://, block link-local (169.254.0.0/16), loopback, and cloud "
+                "metadata addresses (169.254.169.254, metadata.google.internal). Resolve "
+                "DNS once and verify the resolved IP is in the allowed set."
+            ),
         )

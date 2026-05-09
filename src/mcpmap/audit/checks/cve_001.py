@@ -23,4 +23,8 @@ class Cve001VersionMatch(BaseCheck):
             title=m.title,
             evidence={"fingerprint_id": server.fingerprint_id, "version": server.server_info.version, "all_matches": [c.cve for c in matches]},
             repro=f"See: {m.source}",
+            remediation=(
+                f"Upgrade {server.fingerprint_id} to a patched version. See the linked "
+                f"advisory for affected versions and fix details."
+            ),
         )

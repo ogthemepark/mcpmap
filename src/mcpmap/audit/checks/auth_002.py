@@ -28,6 +28,11 @@ class Auth002AudienceBinding(BaseCheck):
                             title="Token audience not validated (RFC 8707 violation)",
                             evidence={"sent_token": DECOY_TOKEN, "status": r.status, "response_excerpt": text[:512]},
                             repro=f"curl -X POST {server.url} -H 'Authorization: {DECOY_TOKEN}' -d '{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}}'",
+                            remediation=(
+                                "Validate the audience (`aud`) claim of every bearer token against this "
+                                "server's canonical resource URI (RFC 8707). Reject tokens minted for "
+                                "other audiences even if signed by the same IdP."
+                            ),
                         )
         except aiohttp.ClientError:
             return None

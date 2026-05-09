@@ -73,4 +73,10 @@ class Inject001CanaryEcho(BaseCheck):
             title="Command injection via tool argument (canary echo confirmed)",
             evidence={"canary": canary, "hits": hits},
             repro="Re-send the recorded payload via curl tools/call with the same arg name.",
+            remediation=(
+                "Never pass tool arguments to a shell. Use list-form subprocess calls "
+                "(shell=False with explicit argv). For path arguments, validate against "
+                "an allowlist of expected directories and reject any input containing "
+                "shell metacharacters (`;`, `$`, `\\`` `, `|`, `&`, newline)."
+            ),
         )

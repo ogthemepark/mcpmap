@@ -40,4 +40,10 @@ class Poison001ToolDescriptionRegex(BaseCheck):
             title="Tool description contains prompt-injection / TPA patterns",
             evidence={"hits": hits},
             repro="Inspect each flagged tool's `description` returned from tools/list.",
+            remediation=(
+                "Strip / reject prompt-injection markup (e.g., <IMPORTANT>, "
+                "system/assistant tags, references to ~/.ssh, ~/.aws, mcp.json) from "
+                "tool descriptions before publishing. Treat tool registration as "
+                "untrusted input and apply the same hygiene as user-generated content."
+            ),
         )

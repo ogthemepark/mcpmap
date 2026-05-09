@@ -44,4 +44,10 @@ class Poison002UnicodeTags(BaseCheck):
             title="Tool description contains zero-width / unicode-tag characters",
             evidence={"hits": hits},
             repro="Inspect raw bytes of each flagged tool's description; render via xxd or hex viewer.",
+            remediation=(
+                "Reject tool descriptions whose NFKC-normalized form differs in length "
+                "from the raw form, and any text containing codepoints in U+200B–U+200F, "
+                "U+202A–U+202E, U+2060–U+206F, U+FEFF, or U+E0000–U+E007F. These ranges "
+                "are invisible to humans but parsed by LLM tokenizers."
+            ),
         )
