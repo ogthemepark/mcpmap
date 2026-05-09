@@ -1,0 +1,74 @@
+# CVE database for fingerprint -> CVE matching.
+# `affected` uses PEP-440-ish range syntax handled by mcpmap.fingerprint.cves.in_range.
+- fingerprint_id: mcp-remote
+  cve: CVE-2025-6514
+  title: "mcp-remote OAuth flow RCE on Windows"
+  severity: critical
+  cvss: 9.6
+  affected: ">=0.0.5,<0.1.16"
+  verified: true
+  source: https://jfrog.com/blog/2025-6514-critical-mcp-remote-rce-vulnerability/
+- fingerprint_id: mcp-inspector
+  cve: CVE-2025-49596
+  title: "MCP Inspector unauthenticated RCE via 0.0.0.0 / Origin"
+  severity: critical
+  cvss: 9.4
+  affected: "<0.14.1"
+  verified: true
+  source: https://www.oligo.security/blog/critical-rce-vulnerability-in-anthropic-mcp-inspector-cve-2025-49596
+- fingerprint_id: cursor-host
+  cve: CVE-2025-54136
+  title: "Cursor MCPoison: trust-bypass via post-approval mutation"
+  severity: high
+  cvss: 7.6
+  affected: "<=1.2.4"
+  verified: true
+  source: https://research.checkpoint.com/2025/cursor-vulnerability-mcpoison/
+- fingerprint_id: framelink-figma-mcp
+  cve: CVE-2025-53967
+  title: "Framelink Figma MCP command injection via child_process.exec"
+  severity: critical
+  cvss: 9.0
+  affected: "*"
+  verified: true
+  source: https://www.endorlabs.com/learn/cve-2025-53967-remote-code-execution-in-framelink-figma-mcp-server
+- fingerprint_id: filesystem-mcp
+  cve: CVE-2025-53109
+  title: "Anthropic Filesystem MCP path traversal via symlinks"
+  severity: high
+  cvss: 8.6
+  affected: "*"
+  verified: false
+  source: https://authzed.com/blog/timeline-mcp-breaches
+- fingerprint_id: flowise
+  cve: CVE-2025-59528
+  title: "Flowise MCP exposed credential / RCE"
+  severity: high
+  cvss: 8.0
+  affected: "*"
+  verified: false
+  source: https://authzed.com/blog/timeline-mcp-breaches
+- fingerprint_id: nginx-ui-mcp
+  cve: CVE-2026-33032
+  title: "nginx-ui MCP missing-auth + command exec"
+  severity: critical
+  cvss: 9.8
+  affected: "*"
+  verified: false
+  source: https://authzed.com/blog/timeline-mcp-breaches
+- fingerprint_id: gemini-mcp-tool
+  cve: CVE-2026-0755
+  title: "gemini-mcp-tool execAsync without validation"
+  severity: high
+  cvss: 8.6
+  affected: "*"
+  verified: false
+  source: https://authzed.com/blog/timeline-mcp-breaches
+- fingerprint_id: librechat-mcp
+  cve: CVE-2026-22252
+  title: "LibreChat MCP disclosure"
+  severity: high
+  cvss: 7.5
+  affected: "*"
+  verified: false
+  source: https://authzed.com/blog/timeline-mcp-breaches
