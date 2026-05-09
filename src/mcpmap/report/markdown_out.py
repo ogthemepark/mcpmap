@@ -5,6 +5,10 @@ from mcpmap.models import ScanResult, Severity
 _SEVERITY_ORDER = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3, Severity.INFO: 4}
 
 
+def _md_line(s: str) -> str:
+    return s.replace("\n", " ").replace("\r", " ").strip()
+
+
 def to_markdown(result: ScanResult) -> str:
     lines: list[str] = []
     lines.append(f"# mcpmap scan report — {result.scan_id}")
@@ -40,8 +44,8 @@ def to_markdown(result: ScanResult) -> str:
         lines.append("### Details")
         lines.append("")
         for f in fs_sorted:
-            lines.append(f"#### {f.check} — {f.title}")
-            lines.append(f"**Severity:** {f.severity.value} (CVSS {f.cvss if f.cvss is not None else '-'})")
+            lines.append(f"#### {_md_line(f.check)} — {_md_line(f.title)}")
+            lines.append(f"**Severity:** {_md_line(f.severity.value)} (CVSS {f.cvss if f.cvss is not None else '-'})")
             lines.append("")
             if f.evidence:
                 lines.append("```json")
@@ -49,9 +53,9 @@ def to_markdown(result: ScanResult) -> str:
                 lines.append("```")
                 lines.append("")
             if f.repro:
-                lines.append(f"**Repro:** {f.repro}")
+                lines.append(f"**Repro:** {_md_line(f.repro)}")
                 lines.append("")
             if f.remediation:
-                lines.append(f"**Remediation:** {f.remediation}")
+                lines.append(f"**Remediation:** {_md_line(f.remediation)}")
                 lines.append("")
     return "\n".join(lines)

@@ -32,6 +32,7 @@
   <aside id="panel"><p>Click a node for details.</p></aside>
 </main>
 <script>
+function esc(s){ const d=document.createElement("div"); d.textContent=String(s??''); return d.innerHTML; }
 const data = {{DATA_JSON}};
 const sevColor = { critical: "#ff6b6b", high: "#ff9e3b", medium: "#f1c40f", low: "#3fb950", info: "#58a6ff", clean: "#6e7681" };
 function maxSev(findings){ const order=["critical","high","medium","low","info"]; for (const s of order){ if (findings.some(f=>f.severity===s)) return s; } return "clean"; }
@@ -68,11 +69,11 @@ function showPanel(d){
   const p = document.getElementById("panel");
   const info = d.info || {};
   const rows = d.findings.map(f =>
-    `<tr><td><code>${f.check}</code></td><td class="severity-${f.severity}">${f.severity}</td><td>${f.cvss ?? "-"}</td><td>${f.title}</td></tr><tr><td colspan=4><p><b>Fix:</b> ${f.remediation || '—'}</p></td></tr>`
+    `<tr><td><code>${esc(f.check)}</code></td><td class="severity-${esc(f.severity)}">${esc(f.severity)}</td><td>${esc(f.cvss ?? "-")}</td><td>${esc(f.title)}</td></tr><tr><td colspan=4><p><b>Fix:</b> ${esc(f.remediation) || '—'}</p></td></tr>`
   ).join("") || "<tr><td colspan=4>No findings</td></tr>";
   p.innerHTML = `
-    <h3>${d.id}</h3>
-    <p><span class="pill">${d.fp || "unknown"}</span> <span class="pill">${info.name || ""} ${info.version || ""}</span></p>
+    <h3>${esc(d.id)}</h3>
+    <p><span class="pill">${esc(d.fp || "unknown")}</span> <span class="pill">${esc(info.name || "")} ${esc(info.version || "")}</span></p>
     <table><thead><tr><th>Check</th><th>Severity</th><th>CVSS</th><th>Title</th></tr></thead><tbody>${rows}</tbody></table>
   `;
 }
