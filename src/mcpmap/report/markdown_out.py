@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 from mcpmap.models import ScanResult, Severity
 
 _SEVERITY_ORDER = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3, Severity.INFO: 4}
@@ -36,4 +37,21 @@ def to_markdown(result: ScanResult) -> str:
             cvss = f"{f.cvss}" if f.cvss is not None else "-"
             lines.append(f"| `{f.check}` | **{f.severity.value}** | {cvss} | {f.title} |")
         lines.append("")
+        lines.append("### Details")
+        lines.append("")
+        for f in fs_sorted:
+            lines.append(f"#### {f.check} — {f.title}")
+            lines.append(f"**Severity:** {f.severity.value} (CVSS {f.cvss if f.cvss is not None else '-'})")
+            lines.append("")
+            if f.evidence:
+                lines.append("```json")
+                lines.append(json.dumps(f.evidence, indent=2))
+                lines.append("```")
+                lines.append("")
+            if f.repro:
+                lines.append(f"**Repro:** {f.repro}")
+                lines.append("")
+            if f.remediation:
+                lines.append(f"**Remediation:** {f.remediation}")
+                lines.append("")
     return "\n".join(lines)

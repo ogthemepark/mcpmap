@@ -26,3 +26,16 @@ def test_scan_result_round_trip():
     j = sr.model_dump_json()
     sr2 = ScanResult.model_validate_json(j)
     assert sr2.servers[0].url == s.url
+
+
+def test_finding_remediation_optional_default_none():
+    from mcpmap.models import Finding, Severity
+    f = Finding(check="X", severity=Severity.LOW, cvss=1.0, title="t")
+    assert f.remediation is None
+
+def test_finding_remediation_round_trips():
+    from mcpmap.models import Finding, Severity
+    f = Finding(check="X", severity=Severity.LOW, cvss=1.0, title="t",
+                remediation="Reject the request.")
+    j = f.model_dump_json()
+    assert "Reject the request" in j

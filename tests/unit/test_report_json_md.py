@@ -24,3 +24,15 @@ def test_markdown_contains_severity_and_url():
     assert "AUTH-001" in md
     assert "10.0.0.5:8000" in md
     assert "## " in md
+
+
+def test_markdown_renders_remediation():
+    from mcpmap.models import ScanResult, Server, Finding, Severity, ServerInfo
+    from mcpmap.report.markdown_out import to_markdown
+    s = Server(url="http://x/mcp", server_info=ServerInfo(name="x", version="1"))
+    sr = ScanResult(scan_id="t", servers=[s], findings={
+        s.url: [Finding(check="AUTH-001", severity=Severity.HIGH, cvss=7.5,
+                        title="t", remediation="Require auth.")]
+    })
+    md = to_markdown(sr)
+    assert "Require auth." in md

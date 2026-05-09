@@ -58,6 +58,7 @@ class Finding(BaseModel):
     cve: str | None = None
     evidence: dict[str, Any] = Field(default_factory=dict)
     repro: str = ""
+    remediation: str | None = None
 
 
 class ScanConfig(BaseModel):
