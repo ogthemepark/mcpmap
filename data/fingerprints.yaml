@@ -1,0 +1,50 @@
+# Pluggable fingerprint database.
+# Match keys are inspected against the live MCP `serverInfo` block plus optional port hints.
+- id: mcp-remote
+  match:
+    server_info_name_contains: ["mcp-remote", "@modelcontextprotocol/mcp-remote"]
+  framework: nodejs
+- id: mcp-inspector
+  match:
+    server_info_name_contains: ["@modelcontextprotocol/inspector", "mcp-inspector"]
+    port_in: [6277, 6274]
+  framework: nodejs
+- id: filesystem-mcp
+  match:
+    server_info_name_contains: ["filesystem", "server-filesystem"]
+- id: framelink-figma-mcp
+  match:
+    server_info_name_contains: ["framelink", "figma-mcp"]
+- id: flowise
+  match:
+    server_info_name_contains: ["flowise"]
+- id: nginx-ui-mcp
+  match:
+    server_info_name_contains: ["nginx-ui"]
+- id: gemini-mcp-tool
+  match:
+    server_info_name_contains: ["gemini-mcp-tool"]
+- id: librechat-mcp
+  match:
+    server_info_name_contains: ["librechat"]
+- id: cursor-host
+  match:
+    server_info_name_contains: ["cursor"]
+- id: fastmcp
+  match:
+    server_info_name_contains: ["fastmcp", "FastMCP"]
+- id: cloudflare-workers-agents
+  match:
+    server_info_name_contains: ["cloudflare", "workers-agents"]
+- id: github-mcp
+  match:
+    server_info_name_contains: ["github"]
+- id: slack-mcp
+  match:
+    server_info_name_contains: ["slack"]
+- id: smithery-built
+  match:
+    server_info_name_contains: ["smithery"]
+- id: python-mcp-sdk
+  match:
+    server_info_name_contains: ["mcp-server-python", "python-mcp"]
