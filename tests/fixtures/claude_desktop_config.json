@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    },
+    "remote-pinned": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.1.10", "https://example.com/mcp"]
+    }
+  }
+}
