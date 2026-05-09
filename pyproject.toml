@@ -20,7 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 shodan = ["shodan>=1.31"]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "pytest-cov>=5.0", "ruff>=0.4"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "pytest-cov>=5.0", "ruff>=0.4", "pytest-aiohttp>=1.0"]
 
 [project.scripts]
 mcpmap = "mcpmap.cli:app"
