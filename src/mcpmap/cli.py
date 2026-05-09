@@ -1,13 +1,23 @@
 from __future__ import annotations
+import asyncio
+import json
+from pathlib import Path
 import typer
 from rich import print as rprint
+from rich.table import Table
 from mcpmap import __version__
+from mcpmap.pipeline import run_scan, _enrich_target, all_checks
+from mcpmap.discover.active import active_discover, PRIORITY_PORTS
+from mcpmap.discover.shodan_source import shodan_targets
+from mcpmap.discover.configs import discover_configs
+from mcpmap.audit.runner import run_checks
+from mcpmap.report.json_out import to_json
+from mcpmap.report.markdown_out import to_markdown
+from mcpmap.report.html_out import to_html
+from mcpmap.models import Target, ScanResult
 
-app = typer.Typer(
-    name="mcpmap",
-    help="Nmap for MCP servers — discover, fingerprint, audit.",
-    no_args_is_help=True,
-)
+
+app = typer.Typer(name="mcpmap", help="Nmap for MCP servers — discover, fingerprint, audit.", no_args_is_help=True)
 
 
 def _version_cb(value: bool):
@@ -17,31 +27,52 @@ def _version_cb(value: bool):
 
 
 @app.callback()
-def main(
-    version: bool = typer.Option(None, "--version", callback=_version_cb, is_eager=True),
-):
+def main(version: bool = typer.Option(None, "--version", callback=_version_cb, is_eager=True)):
     """mcpmap — Model Context Protocol vulnerability scanner."""
 
 
 @app.command()
-def discover(target: str = typer.Argument(..., help="CIDR | host | URL | shodan:<query> | file:<path>")):
+def discover(target: str, shodan: bool = typer.Option(False, "--shodan")):
     """Find MCP servers (active scan, Shodan, or local config)."""
-    rprint(f"[yellow]TODO[/yellow] discover {target}")
+    if shodan:
+        ts = shodan_targets(queries=[target])
+    else:
+        ts = asyncio.run(active_discover(target, ports=PRIORITY_PORTS))
+    table = Table("host", "port", "path", "source")
+    for t in ts:
+        table.add_row(t.host, str(t.port), t.path_hint or "-", t.source)
+    rprint(table)
 
 
 @app.command()
 def fingerprint(url: str):
     """Identify framework, version, capabilities for one MCP URL."""
-    rprint(f"[yellow]TODO[/yellow] fingerprint {url}")
+    from urllib.parse import urlparse
+    u = urlparse(url)
+    t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
+    s = asyncio.run(_enrich_target(t))
+    if not s:
+        rprint("[red]not an MCP server[/red]")
+        raise typer.Exit(1)
+    rprint(f"[green]{s.fingerprint_id or 'unknown'}[/green] — {s.server_info.name} {s.server_info.version}")
+    rprint(f"transport: {s.transport}, tools: {len(s.tools)}")
 
 
 @app.command()
-def audit(
-    url: str,
-    passive: bool = typer.Option(False, "--passive", help="Skip intrusive checks (INJECT, SSRF)."),
-):
+def audit(url: str, passive: bool = typer.Option(False, "--passive")):
     """Run vulnerability checks against one MCP URL."""
-    rprint(f"[yellow]TODO[/yellow] audit {url} (passive={passive})")
+    from urllib.parse import urlparse
+    u = urlparse(url)
+    t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
+    s = asyncio.run(_enrich_target(t))
+    if not s:
+        rprint("[red]not an MCP server[/red]")
+        raise typer.Exit(1)
+    fs = asyncio.run(run_checks(s, all_checks(), passive=passive))
+    table = Table("check", "severity", "cvss", "title")
+    for f in fs:
+        table.add_row(f.check, f.severity.value, str(f.cvss or "-"), f.title)
+    rprint(table)
 
 
 @app.command()
@@ -49,19 +80,42 @@ def scan(
     target: str,
     out: str = typer.Option("scan.json", "--out", "-o"),
     passive: bool = typer.Option(False, "--passive"),
-    rate: int = typer.Option(10, "--rate", help="Per-host requests per second."),
+    rate: int = typer.Option(10, "--rate"),
 ):
-    """discover → fingerprint → audit pipeline."""
-    rprint(f"[yellow]TODO[/yellow] scan {target} -> {out}")
+    """discover -> fingerprint -> audit pipeline."""
+    rprint(f"[bold yellow]Authorized testing only.[/bold yellow] You are responsible for permission to scan [cyan]{target}[/cyan].")
+    result = asyncio.run(run_scan(target, passive=passive, rate=rate))
+    Path(out).write_text(to_json(result))
+    rprint(f"[green]wrote {out}[/green]  servers={len(result.servers)} findings={sum(len(v) for v in result.findings.values())}")
 
 
 @app.command()
 def configs():
     """Audit local stdio MCP configurations on this host."""
-    rprint("[yellow]TODO[/yellow] configs")
+    entries = discover_configs()
+    if not entries:
+        rprint("[yellow]no MCP configs found in default paths[/yellow]")
+        return
+    table = Table("source", "name", "command", "args[0]")
+    for e in entries:
+        table.add_row(e.source_path, e.name, e.command, e.args[0] if e.args else "")
+    rprint(table)
 
 
 @app.command()
-def report(scan_json: str, fmt: str = typer.Option("html", "--format")):
+def report(scan_json: str, fmt: str = typer.Option("html", "--format"), out: str | None = typer.Option(None, "--out")):
     """Render a report from a scan.json."""
-    rprint(f"[yellow]TODO[/yellow] report {scan_json} ({fmt})")
+    data = Path(scan_json).read_text()
+    sr = ScanResult.model_validate_json(data)
+    if fmt == "json":
+        text = to_json(sr)
+        ext = "json"
+    elif fmt == "md":
+        text = to_markdown(sr)
+        ext = "md"
+    else:
+        text = to_html(sr)
+        ext = "html"
+    out_path = out or scan_json.replace(".json", f".{ext}")
+    Path(out_path).write_text(text)
+    rprint(f"[green]wrote {out_path}[/green]")
