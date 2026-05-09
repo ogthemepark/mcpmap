@@ -87,3 +87,30 @@ async def http_paths_alive(
 
         results = await asyncio.gather(*(_probe(p) for p in paths))
     return [p for p in results if p is not None]
+
+
+from mcpmap.discover.handshake import initialize
+from mcpmap.models import Target
+
+
+async def active_discover(
+    host: str,
+    ports: list[int] | None = None,
+    paths: list[str] = MCP_PATHS,
+    tcp_timeout: float = 1.5,
+    http_timeout: float = 3.0,
+) -> list[Target]:
+    """Full active pipeline for a single host: TCP sweep -> HTTP probe -> initialize. Returns confirmed Targets."""
+    ports = ports or PRIORITY_PORTS
+    open_ports = await tcp_sweep(host, ports, timeout=tcp_timeout)
+    confirmed: list[Target] = []
+    for port in open_ports:
+        scheme = "https" if port in (443, 8443) else "http"
+        base = f"{scheme}://{host}:{port}"
+        alive = await http_paths_alive(base, paths=paths, timeout=http_timeout)
+        for p in alive:
+            url = base + p
+            if await initialize(url) is not None:
+                confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
+                break  # one path per (host, port) is enough
+    return confirmed
