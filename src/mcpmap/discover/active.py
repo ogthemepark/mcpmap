@@ -4,7 +4,8 @@ from typing import Iterable
 import aiohttp
 
 # Prioritized port list (see spec §6.1).
-PRIORITY_PORTS = [80, 443, 3000, 8000, 8080, 8443, 5173, 5174, 6274, 6277, 8001, 11434]
+PRIORITY_PORTS = [80, 443, 3000, 8000, 8080, 8443, 5173, 5174, 6274, 6277, 11434,
+                  8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009, 8010]
 
 
 async def tcp_open(host: str, port: int, timeout: float = 1.5) -> bool:
@@ -78,10 +79,11 @@ async def http_paths_alive(
             async with sem:
                 try:
                     async with session.get(base_url.rstrip("/") + p, allow_redirects=False) as r:
-                        # Use < 400 rather than < 500: a 404 means the path does
-                        # not exist on this server; 401/403 still mean the endpoint
-                        # exists but requires auth, so those are legitimately alive.
-                        return p if r.status < 400 else None
+                        # Alive = path exists. < 400 covers 2xx/3xx; 401/403 mean
+                        # auth required (path exists); 405 means wrong method
+                        # (path exists, only accepts POST — true for MCP /mcp).
+                        # 404 means no such path → not alive.
+                        return p if (r.status < 400 or r.status in (401, 403, 405)) else None
                 except Exception:
                     return None
 
