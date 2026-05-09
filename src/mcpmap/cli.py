@@ -14,6 +14,7 @@ from mcpmap.audit.runner import run_checks
 from mcpmap.report.json_out import to_json
 from mcpmap.report.markdown_out import to_markdown
 from mcpmap.report.html_out import to_html
+from mcpmap.report.poc_out import render_poc
 from mcpmap.models import Target, ScanResult
 
 
@@ -119,3 +120,20 @@ def report(scan_json: str, fmt: str = typer.Option("html", "--format"), out: str
     out_path = out or scan_json.replace(".json", f".{ext}")
     Path(out_path).write_text(text)
     rprint(f"[green]wrote {out_path}[/green]")
+
+
+@app.command()
+def poc(
+    scan_json: str,
+    check: str = typer.Option(..., "--check", "-c", help="Check ID, e.g., INJECT-001"),
+    out: str | None = typer.Option(None, "--out", "-o", help="Write to file (default: stdout)"),
+):
+    """Emit a coordinated-disclosure-ready PoC writeup for one finding."""
+    data = Path(scan_json).read_text()
+    sr = ScanResult.model_validate_json(data)
+    text = render_poc(sr, check)
+    if out:
+        Path(out).write_text(text)
+        rprint(f"[green]wrote {out}[/green]")
+    else:
+        typer.echo(text)
