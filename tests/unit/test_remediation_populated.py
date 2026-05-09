@@ -1,6 +1,5 @@
 import pytest
 from mcpmap.models import Server, Tool, ServerInfo
-from mcpmap.audit.checks.auth_001 import Auth001UnauthToolsList
 from mcpmap.audit.checks.poison_001 import Poison001ToolDescriptionRegex
 from mcpmap.audit.checks.poison_002 import Poison002UnicodeTags
 from mcpmap.audit.checks.transport_001 import Transport001LegacySse
