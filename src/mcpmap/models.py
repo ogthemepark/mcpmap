@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Severity(str, Enum):
@@ -24,6 +24,8 @@ class Target(BaseModel):
 
 
 class Tool(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str
     description: str = ""
     input_schema: dict[str, Any] = Field(default_factory=dict, alias="inputSchema")
