@@ -89,8 +89,6 @@ class Server(BaseModel):
 
 
 class Finding(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     check: str                                   # canonical check ID, e.g. MCP-AUTH-UNAUTH-LIST
     aliases: list[str] = Field(default_factory=list)  # e.g. ["AUTH-001"] for back-compat
     severity: Severity
