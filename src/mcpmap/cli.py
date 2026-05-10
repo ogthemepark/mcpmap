@@ -60,20 +60,64 @@ def fingerprint(url: str):
 
 
 @app.command()
-def audit(url: str, passive: bool = typer.Option(False, "--passive")):
+def audit(
+    url: str,
+    passive: bool = typer.Option(False, "--passive"),
+    verbose: bool = typer.Option(False, "--verbose", "-v",
+                                  help="Show evidence, repro, and remediation per finding."),
+):
     """Run vulnerability checks against one MCP URL."""
+    import concurrent.futures
     from urllib.parse import urlparse
+
+    def _run(coro):
+        """Run a coroutine. If a loop is already running (e.g. inside pytest-asyncio),
+        spin up a fresh loop in a background thread to avoid blocking the test loop."""
+        try:
+            asyncio.get_running_loop()
+            running = True
+        except RuntimeError:
+            running = False
+        if running:
+            result_holder: list = []
+            exc_holder: list = []
+
+            def _thread_target():
+                try:
+                    result_holder.append(asyncio.run(coro))
+                except Exception as exc:  # noqa: BLE001
+                    exc_holder.append(exc)
+
+            import threading
+            t = threading.Thread(target=_thread_target, daemon=True)
+            t.start()
+            t.join()
+            if exc_holder:
+                raise exc_holder[0]
+            return result_holder[0]
+        return asyncio.run(coro)
+
     u = urlparse(url)
     t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
-    s = asyncio.run(_enrich_target(t))
+    s = _run(_enrich_target(t))
     if not s:
         rprint("[red]not an MCP server[/red]")
         raise typer.Exit(1)
-    fs = asyncio.run(run_checks(s, all_checks(), passive=passive))
+    fs = _run(run_checks(s, all_checks(), passive=passive))
     table = Table("check", "severity", "cvss", "title")
     for f in fs:
         table.add_row(f.check, f.severity.value, str(f.cvss or "-"), f.title)
     rprint(table)
+    if verbose:
+        for f in fs:
+            rprint(f"\n[bold cyan]── {f.check} ──[/bold cyan]")
+            if f.evidence:
+                rprint("[dim]Evidence:[/dim]")
+                rprint(json.dumps(f.evidence, indent=2))
+            if f.repro:
+                rprint(f"[dim]Repro:[/dim] {f.repro}")
+            if f.remediation:
+                rprint(f"[dim]Remediation:[/dim] {f.remediation}")
 
 
 @app.command()
