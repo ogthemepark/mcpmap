@@ -23,17 +23,23 @@ def _curl_for(check: str, url: str, finding: Finding) -> str:
         if not hits:
             return ""
         h = hits[0]
+        tool_name = h.get("tool", "unknown_tool")
+        arg_name = h.get("arg", "arg")
+        payload = h.get("payload", "")
         body = {
             "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-            "params": {"name": h["tool"], "arguments": {h["arg"]: h["payload"]}},
+            "params": {"name": tool_name, "arguments": {arg_name: payload}},
         }
         return _curl(url, body)
     if check == "SSRF-001":
         hits = ev.get("hits") or []
         if not hits:
             return ""
+        uri = hits[0].get("uri", "")
+        if not uri:
+            return ""
         body = {"jsonrpc": "2.0", "id": 1, "method": "resources/read",
-                "params": {"uri": hits[0]["uri"]}}
+                "params": {"uri": uri}}
         return _curl(url, body)
     if check in ("AUTH-001", "AUTH-002", "AUTH-003"):
         body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
@@ -62,7 +68,7 @@ def _curl(url: str, body: dict, extra_headers: list[str] | None = None) -> str:
                "-H 'Accept: application/json, text/event-stream'"]
     if extra_headers:
         headers.extend(extra_headers)
-    payload = json.dumps(body, indent=2)
+    payload = json.dumps(body, indent=2, ensure_ascii=True).replace("'", r"\u0027")
     return (f"curl -s -X POST {url} \\\n  "
             + " \\\n  ".join(headers) + " \\\n  "
             + f"-d '{payload}'")

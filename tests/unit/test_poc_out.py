@@ -46,3 +46,26 @@ def test_poc_includes_remediation():
 def test_poc_no_match_returns_empty_with_message():
     out = render_poc(_scan(), "DOES-NOT-EXIST")
     assert "no findings" in out.lower()
+
+
+def test_poc_curl_payload_safe_with_apostrophe_in_evidence():
+    """A server-controlled string with a single quote must not break the shell."""
+    from mcpmap.models import ScanResult, Server, Finding, Severity, ServerInfo
+    from mcpmap.report.poc_out import render_poc
+    s = Server(url="http://x/mcp",
+               server_info=ServerInfo(name="x", version="1"))
+    sr = ScanResult(scan_id="t", servers=[s], findings={
+        s.url: [Finding(
+            check="INJECT-001",
+            severity=Severity.HIGH,
+            cvss=8.0,
+            title="t",
+            evidence={"hits": [{"tool": "f", "arg": "x",
+                                 "payload": "it's a trap"}]},
+        )]
+    })
+    out = render_poc(sr, "INJECT-001")
+    # Within the single-quoted -d block, a literal apostrophe would terminate
+    # the shell argument. ensure_ascii=True must convert it to \u0027.
+    # Find the curl block and assert it contains no bare ' inside the JSON.
+    assert "\\u0027" in out or "'s a trap" not in out

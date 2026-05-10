@@ -7,7 +7,7 @@ runner = CliRunner()
 def test_cli_help():
     r = runner.invoke(app, ["--help"])
     assert r.exit_code == 0
-    for cmd in ("discover", "fingerprint", "audit", "scan", "configs", "report"):
+    for cmd in ("discover", "fingerprint", "audit", "scan", "configs", "report", "poc"):
         assert cmd in r.stdout
 
 
