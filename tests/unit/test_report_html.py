@@ -63,3 +63,58 @@ def test_html_data_block_escapes_script_break():
         # If the template doesn't put data on a single line, fall back to a
         # whole-document scan that requires the escaped form to be present.
         assert r"<\/script>" in html
+
+
+def _basic_scan():
+    s = Server(url="http://127.0.0.1:8006/mcp",
+               fingerprint_id="mcp-cmdinject",
+               server_info=ServerInfo(name="mcp-cmdinject", version="0.0.1"))
+    return ScanResult(scan_id="t1", servers=[s], findings={
+        s.url: [Finding(check="INJECT-001", severity=Severity.CRITICAL, cvss=9.0,
+                        title="Command injection", remediation="Don't shell out.")]
+    })
+
+
+def test_html_no_d3_dependency():
+    """Cycle B drops d3. The marker substitution and library should be gone."""
+    html = to_html(_basic_scan())
+    assert "{{D3_INLINE}}" not in html  # placeholder must be replaced or removed
+    assert "d3.forceSimulation" not in html
+    assert "d3.min.js" not in html
+
+
+def test_html_dashboard_chrome():
+    """Top-level chrome elements are present."""
+    html = to_html(_basic_scan())
+    # Roles for screen readers and structural sentinels for the JS.
+    assert 'id="header"' in html
+    assert 'id="severity-strip"' in html
+    assert 'id="filter-bar"' in html
+    assert 'id="server-list"' in html
+    assert 'id="finding-list"' in html
+    assert 'id="detail-pane"' in html
+
+
+def test_html_severity_palette_complete():
+    """All 5 severity classes have CSS rules."""
+    html = to_html(_basic_scan())
+    for sev in ("critical", "high", "medium", "low", "info"):
+        # CSS variable + class definition for each severity
+        assert f"--sev-{sev}:" in html
+        assert f".sev-{sev}" in html
+
+
+def test_html_severity_sigils_present():
+    """Severity sigils (▣ ◆ ◈ ○ ·) are rendered in the JS map for icon mode."""
+    html = to_html(_basic_scan())
+    # The SIGIL map literal should be present in the JS so a colorblind
+    # user can still distinguish severities.
+    assert "SIGIL" in html
+    for sigil in ("▣", "◆", "◈", "○", "·"):
+        assert sigil in html
+
+
+def test_html_esc_helper_still_present():
+    """Cycle A XSS hardening is preserved through the rewrite."""
+    html = to_html(_basic_scan())
+    assert "function esc(" in html
