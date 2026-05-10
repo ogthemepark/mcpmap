@@ -69,3 +69,21 @@ def test_poc_curl_payload_safe_with_apostrophe_in_evidence():
     # the shell argument. ensure_ascii=True must convert it to \u0027.
     # Find the curl block and assert it contains no bare ' inside the JSON.
     assert "\\u0027" in out or "'s a trap" not in out
+
+
+def test_poc_cli_exits_nonzero_on_no_match(tmp_path):
+    """poc must signal failure when no finding matches the requested check."""
+    from typer.testing import CliRunner
+    from mcpmap.cli import app
+    from mcpmap.models import ScanResult, Server, Finding, Severity, ServerInfo
+    s = Server(url="http://x/mcp",
+               server_info=ServerInfo(name="x", version="1"))
+    sr = ScanResult(scan_id="t", servers=[s], findings={
+        s.url: [Finding(check="AUTH-001", severity=Severity.HIGH, cvss=7.0,
+                        title="t")]
+    })
+    p = tmp_path / "scan.json"
+    p.write_text(sr.model_dump_json())
+    r = CliRunner().invoke(app, ["poc", str(p), "--check", "INJECT-001"])
+    assert r.exit_code == 1
+    assert "No findings matched" in r.output

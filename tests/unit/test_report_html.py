@@ -30,3 +30,36 @@ def test_html_escapes_remediation_payload():
     assert "function esc(" in html
     # No raw payload that would execute. The data block is JSON, so we can't
     # forbid the literal string from appearing — but assert the esc helper is wired.
+
+
+def test_html_data_block_escapes_script_break():
+    """A server-controlled string containing </script> must not break out
+    of the data <script> block in the generated HTML."""
+    from mcpmap.models import ScanResult, Server, Finding, Severity, ServerInfo
+    from mcpmap.report.html_out import to_html
+    s = Server(url="http://x/mcp",
+               server_info=ServerInfo(name="evil", version="1"))
+    sr = ScanResult(scan_id="t", servers=[s], findings={
+        s.url: [Finding(
+            check="X", severity=Severity.LOW, cvss=1.0,
+            title="t",
+            remediation="</script><script>alert(1)</script>",
+        )]
+    })
+    html = to_html(sr)
+    # The literal "</script>" sequence must not appear inside the JSON data
+    # block. The replace converts it to "<\/script>" which is semantically
+    # identical for JSON / JS but does not close the surrounding <script>.
+    # We can't simply assert "</script>" not in html because the template
+    # itself contains the legitimate closing </script> tag, but we can
+    # assert that the data assignment (one specific line) doesn't contain it.
+    # Find the data line:
+    for line in html.splitlines():
+        if "const data" in line or "var data" in line or "data =" in line:
+            assert "</script>" not in line, f"unsafe data line: {line!r}"
+            assert r"<\/script>" in line or "alert" not in line
+            break
+    else:
+        # If the template doesn't put data on a single line, fall back to a
+        # whole-document scan that requires the escaped form to be present.
+        assert r"<\/script>" in html

@@ -176,6 +176,9 @@ def poc(
     data = Path(scan_json).read_text()
     sr = ScanResult.model_validate_json(data)
     text = render_poc(sr, check)
+    if text.startswith("# No findings matched"):
+        rprint(f"[red]{text.strip()}[/red]")
+        raise typer.Exit(1)
     if out:
         Path(out).write_text(text)
         rprint(f"[green]wrote {out}[/green]")

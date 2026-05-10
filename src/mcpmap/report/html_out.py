@@ -15,7 +15,7 @@ def to_html(result: ScanResult) -> str:
         for f in fs:
             counts[f.severity.value] += 1
     summary = f"servers: {len(result.servers)} | critical: {counts['critical']} | high: {counts['high']} | medium: {counts['medium']}"
-    data = json.dumps(result.model_dump(mode='json'))
+    data = json.dumps(result.model_dump(mode='json')).replace("</", r"<\/")
     return (tpl
             .replace("{{SCAN_ID}}", result.scan_id)
             .replace("{{SUMMARY}}", summary)
