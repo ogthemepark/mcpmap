@@ -47,9 +47,10 @@ def to_markdown(result: ScanResult) -> str:
             lines.append(f"#### {_md_line(f.check)} — {_md_line(f.title)}")
             lines.append(f"**Severity:** {_md_line(f.severity.value)} (CVSS {f.cvss if f.cvss is not None else '-'})")
             lines.append("")
-            if f.evidence:
+            ev_data = f.evidence.model_dump(exclude_none=True) if hasattr(f.evidence, "model_dump") else (f.evidence or {})
+            if ev_data:
                 lines.append("```json")
-                lines.append(json.dumps(f.evidence, indent=2))
+                lines.append(json.dumps(ev_data, indent=2))
                 lines.append("```")
                 lines.append("")
             if f.repro:

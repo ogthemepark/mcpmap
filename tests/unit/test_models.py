@@ -39,3 +39,32 @@ def test_finding_remediation_round_trips():
                 remediation="Reject the request.")
     j = f.model_dump_json()
     assert "Reject the request" in j
+
+
+from mcpmap.models import Finding, Severity, Confidence, Evidence
+
+
+def test_finding_accepts_confidence_cwe_and_vector():
+    f = Finding(
+        check="MCP-AUTH-UNAUTH-LIST",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        cvss=7.5,
+        cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        cwe="CWE-306",
+        title="x",
+    )
+    assert f.confidence is Confidence.HIGH
+    assert f.cwe == "CWE-306"
+    assert f.cvss_vector.startswith("CVSS:3.1/")
+    assert f.aliases == []
+    assert f.related_to is None
+
+
+def test_finding_evidence_is_typed():
+    e = Evidence(request={"a": 1}, response_excerpt="ok", artifacts={"k": "v"})
+    f = Finding(check="X", severity=Severity.LOW, title="t", evidence=e)
+    assert f.evidence.request == {"a": 1}
+    # Backwards-compat: still accepts a plain dict for evidence
+    f2 = Finding(check="X", severity=Severity.LOW, title="t", evidence={"foo": "bar"})
+    assert f2.evidence.artifacts == {"foo": "bar"}

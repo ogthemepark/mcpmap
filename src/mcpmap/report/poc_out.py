@@ -17,7 +17,11 @@ _HEADER = """# Security Finding: {check} — {title}
 
 def _curl_for(check: str, url: str, finding: Finding) -> str:
     """Reconstruct a runnable curl from finding evidence."""
-    ev = finding.evidence or {}
+    raw_ev = finding.evidence
+    ev = raw_ev.model_dump(exclude_none=True) if hasattr(raw_ev, "model_dump") else (raw_ev or {})
+    # Flatten artifacts into the top-level dict so legacy key lookups (e.g. "hits") still work.
+    artifacts = ev.pop("artifacts", {}) or {}
+    ev = {**artifacts, **ev}
     if check == "INJECT-001":
         hits = ev.get("hits") or []
         if not hits:
@@ -101,7 +105,7 @@ def render_poc(scan: ScanResult, check_id: str) -> str:
             parts.append("## Summary\n")
             parts.append(f.title + "\n")
             parts.append("## Evidence\n")
-            ev = f.evidence or {}
+            ev = f.evidence.model_dump(exclude_none=True) if hasattr(f.evidence, "model_dump") else (f.evidence or {})
             if ev:
                 parts.append("```json\n" + json.dumps(ev, indent=2) + "\n```\n")
             else:

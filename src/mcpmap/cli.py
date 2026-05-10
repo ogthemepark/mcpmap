@@ -111,9 +111,10 @@ def audit(
     if verbose:
         for f in fs:
             rprint(f"\n[bold cyan]── {f.check} ──[/bold cyan]")
-            if f.evidence:
+            ev_data = f.evidence.model_dump(exclude_none=True) if hasattr(f.evidence, "model_dump") else (f.evidence or {})
+            if ev_data:
                 rprint("[dim]Evidence:[/dim]")
-                rprint(json.dumps(f.evidence, indent=2))
+                rprint(json.dumps(ev_data, indent=2))
             if f.repro:
                 rprint(f"[dim]Repro:[/dim] {f.repro}")
             if f.remediation:
