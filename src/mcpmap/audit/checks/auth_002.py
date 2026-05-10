@@ -14,26 +14,42 @@ class Auth002AudienceBinding(BaseCheck):
 
     async def run(self, server: Server) -> Finding | None:
         payload = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
-        headers = {"Authorization": DECOY_TOKEN, "Accept": "application/json, text/event-stream"}
         timeout = aiohttp.ClientTimeout(total=5.0)
         try:
             async with aiohttp.ClientSession(timeout=timeout, connector=aiohttp.TCPConnector(ssl=False)) as s:
+                # Probe 1: no token. If this succeeds, the server has no auth at all —
+                # AUTH-001's territory, not ours. Stay silent.
+                async with s.post(server.url, json=payload, headers={"Accept": "application/json, text/event-stream"}) as r:
+                    no_tok_status = r.status
+                    no_tok_text = await r.text()
+                if no_tok_status == 200 and '"result"' in no_tok_text:
+                    return None  # no auth — let AUTH-001 own this finding
+
+                # Probe 2: bogus token. If this succeeds, the server requires a token
+                # but doesn't validate audience.
+                headers = {"Authorization": DECOY_TOKEN, "Accept": "application/json, text/event-stream"}
                 async with s.post(server.url, json=payload, headers=headers) as r:
-                    text = await r.text()
-                    if r.status == 200 and '"result"' in text:
-                        return Finding(
-                            check=self.id,
-                            severity=Severity.HIGH,
-                            cvss=8.1,
-                            title="Token audience not validated (RFC 8707 violation)",
-                            evidence={"sent_token": DECOY_TOKEN, "status": r.status, "response_excerpt": text[:512]},
-                            repro=f"curl -X POST {server.url} -H 'Authorization: {DECOY_TOKEN}' -d '{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}}'",
-                            remediation=(
-                                "Validate the audience (`aud`) claim of every bearer token against this "
-                                "server's canonical resource URI (RFC 8707). Reject tokens minted for "
-                                "other audiences even if signed by the same IdP."
-                            ),
-                        )
+                    if r.status == 200:
+                        text = await r.text()
+                        if '"result"' in text:
+                            return Finding(
+                                check=self.id,
+                                severity=Severity.HIGH,
+                                cvss=8.1,
+                                title="Token audience not validated (RFC 8707 violation)",
+                                evidence={
+                                    "no_token_status": no_tok_status,
+                                    "bogus_token": DECOY_TOKEN,
+                                    "bogus_token_status": r.status,
+                                    "response_excerpt": text[:512],
+                                },
+                                repro=f"curl -X POST {server.url} -H 'Authorization: {DECOY_TOKEN}' -d '{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}}'",
+                                remediation=(
+                                    "Validate the audience (`aud`) claim of every bearer token against this "
+                                    "server's canonical resource URI (RFC 8707). Reject tokens minted for "
+                                    "other audiences even if signed by the same IdP."
+                                ),
+                            )
         except aiohttp.ClientError:
             return None
         return None
