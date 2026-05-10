@@ -60,12 +60,13 @@ async def _enrich_target(t: Target) -> Server | None:
     if not res:
         return None
     info = ServerInfo(**(res.get("serverInfo") or {}))
+    detected_transport = res.pop("_mcpmap_transport", "streamable-http")
     server = Server(
         url=url,
         server_info=info,
         capabilities=res.get("capabilities", {}),
         protocol_version=res.get("protocolVersion"),
-        transport="streamable-http",
+        transport=detected_transport,
     )
     server.fingerprint_id = match_fingerprint(info, port=t.port)
     timeout = aiohttp.ClientTimeout(total=5.0)
