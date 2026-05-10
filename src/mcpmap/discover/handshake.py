@@ -55,6 +55,7 @@ async def _get_sse_handshake(url: str, timeout: float) -> dict | None:
                 if "text/event-stream" not in ctype:
                     return None
                 body = await r.content.read(8192)
+                r.close()   # don't drain the infinite SSE stream
                 text = body.decode("utf-8", errors="ignore")
                 return _parse_sse_result(text, "http+sse")
     except (aiohttp.ClientError, asyncio.TimeoutError):
@@ -94,6 +95,7 @@ async def initialize(
                 ctype = r.headers.get("content-type", "")
                 if "text/event-stream" in ctype:
                     body = await r.content.read(8192)
+                    r.close()
                     text = body.decode("utf-8", errors="ignore")
                     # SSE frames look like: "event: message\ndata: {json}\n\n"
                     return _parse_sse_result(text, "http+sse")
