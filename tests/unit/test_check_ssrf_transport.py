@@ -60,6 +60,4 @@ async def test_ssrf_001_does_not_false_positive_on_metadata_header_echo(aiohttp_
     f = await Ssrf001ResourcesRead().run(s)
     # Echoing the literal string "Metadata-Flavor" is not proof of GCP metadata access.
     # Should not fire on this fake.
-    assert f is None or "metadata.google.internal" not in str(f.evidence), (
-        f"false positive: {f.evidence if f else None}"
-    )
+    assert f is None, f"false positive: {f.evidence if f else None}"
