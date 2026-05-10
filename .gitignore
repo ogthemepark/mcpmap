@@ -11,3 +11,7 @@ dist/
 scan_*.json
 scan_*.html
 scan_*.md
+/scan.json
+/scan.html
+/scan.md
+/test.html
