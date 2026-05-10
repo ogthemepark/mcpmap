@@ -546,9 +546,12 @@ function _curl(url, body, extra){
   const headers = ["-H 'Content-Type: application/json'",
                    "-H 'Accept: application/json, text/event-stream'"];
   if (extra && extra.length) headers.push(...extra);
-  // Match the Python implementation: replace ' with \u0027 so the single-
-  // quoted -d argument never breaks under the shell parser.
-  const payload = JSON.stringify(body, null, 2).replace(/'/g, "\\u0027");
+  // Match the Python implementation: ensure_ascii=True escapes non-ASCII chars
+  // as \uXXXX, and replace ' with \u0027 so the single-quoted -d argument
+  // never breaks under the shell parser.
+  const payload = JSON.stringify(body, null, 2)
+    .replace(/[\u0080-\uffff]/g, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+    .replace(/'/g, "\\u0027");
   return `curl -s -X POST ${url} \\\n  ` + headers.join(" \\\n  ") + ` \\\n  -d '${payload}'`;
 }
 

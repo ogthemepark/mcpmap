@@ -225,14 +225,24 @@ def test_html_keyboard_nav_present():
 
 
 def test_html_curl_for_has_all_check_branches():
-    """The JS port of _curl_for must cover the same check IDs as poc_out.py."""
+    """The JS port of _curl_for must cover the same check IDs as poc_out.py.
+    The IDs must appear *inside* the curlFor function body, not just anywhere
+    in the document — that ensures real branch coverage, not stray references."""
     html = to_html(_basic_scan())
-    assert "function curlFor(" in html
+    # Extract the curlFor function body. It runs from "function curlFor(" up to
+    # the next top-level "function " or end of script.
+    start = html.find("function curlFor(")
+    assert start >= 0, "curlFor function not found"
+    # Find the next sibling top-level function declaration after curlFor.
+    end = html.find("\nfunction ", start + 1)
+    if end < 0:
+        end = html.find("</script>", start)
+    assert end > start, "couldn't isolate curlFor body"
+    body = html[start:end]
     expected = ["INJECT-001", "SSRF-001", "AUTH-001", "AUTH-002", "AUTH-003",
                 "HONEYPOT-001", "POISON-001", "POISON-002", "CVE-001", "TRANSPORT-001"]
     for cid in expected:
-        # Each check ID must appear at least once in the JS curlFor function body.
-        assert cid in html, f"curlFor missing branch for {cid}"
+        assert cid in body, f"curlFor body is missing branch for {cid}"
 
 
 def test_html_copy_as_curl_button_wired():
@@ -249,3 +259,15 @@ def test_html_renders_evidence_and_repro_and_remediation_blocks():
     # Sentinels for the three section labels in the detail pane.
     for label in ("evidence", "reproduction", "remediation"):
         assert label.lower() in html.lower(), f"missing detail section: {label}"
+
+
+def test_curl_for_escapes_non_ascii_to_match_python():
+    """JS port must escape non-ASCII (U+0080+) to match Python's ensure_ascii=True.
+    Regression test: a finding whose evidence contains a non-ASCII char must
+    cause the JS payload-construction to escape it as \\uXXXX."""
+    html = to_html(_basic_scan())
+    # The escaping pattern must be present in the rendered template's _curl helper.
+    assert "[\\u0080-\\uffff]" in html or "\\u0080" in html, \
+        "_curl is missing the non-ASCII escape pass — JS will diverge from Python's ensure_ascii=True"
+    # The single-quote escape must still be present (regression on the existing fix).
+    assert "\\\\u0027" in html or "u0027" in html
