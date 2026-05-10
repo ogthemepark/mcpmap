@@ -107,7 +107,9 @@ async def _sse_probe(url: str, timeout: float = 3.0) -> bool:
                     return False
                 # Read at most one frame's worth of bytes to confirm the stream opens
                 chunk = await r.content.read(4096)
-                return b"data:" in chunk
+                has_data = b"data:" in chunk
+                r.close()  # don't drain the infinite stream — close the underlying connection
+                return has_data
     except Exception:
         return False
 
@@ -136,6 +138,9 @@ async def active_discover(
             if await initialize(url) is not None:
                 confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
                 break  # one path per (host, port) is enough
+            # Fallback for legacy http+sse MCP transports (POST /sse → 405).
+            # Note: a non-MCP SSE endpoint at /sse would also pass this gate;
+            # acceptable for v1 — audit checks reject non-MCP servers later.
             if p.endswith("/sse") and await _sse_probe(url):
                 confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
                 break
