@@ -15,10 +15,13 @@ class Auth003OriginValidation(BaseCheck):
         timeout = aiohttp.ClientTimeout(total=5.0)
         try:
             async with aiohttp.ClientSession(timeout=timeout, connector=aiohttp.TCPConnector(ssl=False)) as s:
-                # Probe 1: no Origin header. Open servers return 2xx → AUTH-001 territory.
+                # Probe 1: no Origin header. Open servers return 2xx with a result body →
+                # AUTH-001 territory, not AUTH-003. Require '"result"' in the body so that
+                # servers using HTTP 200 + JSONRPC error body for enforcement aren't bypassed.
                 async with s.post(server.url, json=payload, headers={"Accept": "application/json, text/event-stream"}) as r:
                     no_origin_status = r.status
-                if 200 <= no_origin_status < 300:
+                    no_origin_text = await r.text()
+                if 200 <= no_origin_status < 300 and '"result"' in no_origin_text:
                     return None  # server doesn't care about Origin (or about anything) — not AUTH-003
 
                 # Probe 2: evil Origin. If this succeeds where no-Origin failed, the server
@@ -34,6 +37,7 @@ class Auth003OriginValidation(BaseCheck):
                             title="Origin header not validated (DNS-rebinding risk)",
                             evidence={
                                 "no_origin_status": no_origin_status,
+                                "no_origin_response_excerpt": no_origin_text[:256],
                                 "sent_origin": EVIL_ORIGIN,
                                 "evil_origin_status": r.status,
                                 "response_excerpt": text[:256],

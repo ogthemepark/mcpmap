@@ -14,9 +14,13 @@ async def _reject_no_origin_accept_any_origin(request):
 
 
 async def _reject_evil_origin(request):
-    if request.headers.get("Origin") == "https://evil.example":
-        return web.Response(status=403)
-    return web.json_response({"jsonrpc": "2.0", "id": 1, "result": {}})
+    origin = request.headers.get("Origin")
+    if not origin:
+        return web.Response(status=403)           # requires Origin
+    if origin == "https://evil.example":
+        return web.Response(status=403)           # rejects the evil one too
+    body = await request.json()
+    return web.json_response({"jsonrpc": "2.0", "id": body.get("id", 1), "result": {}})
 
 
 @pytest.mark.asyncio
