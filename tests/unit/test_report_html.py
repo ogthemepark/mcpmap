@@ -155,11 +155,14 @@ def test_finding_list_uses_data_attributes():
 
 
 def test_server_list_renders_servers():
-    """Render JS reads from data.servers and emits one .server node per entry."""
+    """Render JS reads from data.servers and emits one .server node per entry
+    with data-server attributes for selection wiring."""
     html = to_html(_basic_scan())
-    # The render function must reference `data.servers` and create `.server` nodes.
     assert "data.servers" in html
-    assert "class=\"server\"" in html or "class='server'" in html or 'className = "server"' in html or "class=\\\"server\\\"" in html
+    # The render function must emit nodes with data-server attrs
+    assert 'data-server="${' in html
+    # And use the .server class
+    assert "server${sel" in html or 'class="server "' in html or 'class="server"' in html
 
 
 def test_severity_strip_emits_all_five():
@@ -178,6 +181,23 @@ def test_totals_summary_in_header():
     # The render function must reference both counts.
     assert "data.servers.length" in html
     assert "totalFindings" in html or "findings.length" in html or "totalCount" in html
+
+
+def test_finding_key_is_stable_not_index_based():
+    """selectedFinding key must not depend on filtered-list index, since
+    renderDetail looks up against the full flatFindings() list."""
+    html = to_html(_basic_scan())
+    # The key is now a monotonic 'f<n>' assigned at flatten time. The
+    # selectedFinding lookup must reference `item.key` and the rendered
+    # data-key must be the same shape.
+    assert "key: `f${" in html or 'key: "f"' in html or "key: 'f'" in html
+    # The unstable `${url}|${f.check}|${i}` pattern should be gone from
+    # the data-key attribute (it may still appear in OTHER places like a
+    # comment, but not as the actual data-key value).
+    # Sentinel: the new pattern is `data-key="${item.key}"` (or similar
+    # using the destructured `key`). Verify either the destructured form
+    # or the item form.
+    assert 'data-key="${key}"' in html or 'data-key="${item.key}"' in html
 
 
 SEV_ORDER = ("critical", "high", "medium", "low", "info")

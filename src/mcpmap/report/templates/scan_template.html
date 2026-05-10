@@ -274,10 +274,12 @@ function maxSev(findings){
 }
 
 function flatFindings(){
-  // Returns array of { url, finding } pairs for every finding in the scan.
+  // Returns array of { url, f, key } pairs. The `key` is a stable monotonic
+  // id assigned at flatten time so it survives filter/sort.
   const out = [];
+  let i = 0;
   for (const [url, fs] of Object.entries(data.findings || {})){
-    for (const f of fs){ out.push({ url, f }); }
+    for (const f of fs){ out.push({ url, f, key: `f${i++}` }); }
   }
   return out;
 }
@@ -355,10 +357,9 @@ function renderFilterBar(){
 }
 
 function renderServerList(){
-  // Emits one node with class="server" per entry in data.servers.
   const el = document.getElementById("server-list");
   el.innerHTML = data.servers.map(s => {
-    const fs = data.findings[s.url] || [];
+    const fs = (data.findings || {})[s.url] || [];
     const c = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
     for (const f of fs){ if (c[f.severity] != null) c[f.severity]++; }
     const segs = SEV_ORDER.map(sev =>
@@ -408,9 +409,10 @@ function renderFindingList(){
     el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg-faint)">no findings match these filters</div>`;
     return;
   }
-  el.innerHTML = items.map(({ url, f }, i) => {
-    const sel = state.selectedFinding === `${url}|${f.check}|${i}` ? "selected" : "";
-    return `<div class="finding ${sel}" data-severity="${esc(f.severity)}" data-check="${esc(f.check)}" data-server="${esc(url)}" data-key="${esc(url + '|' + f.check + '|' + i)}">
+  el.innerHTML = items.map((item, i) => {
+    const { url, f, key } = item;
+    const sel = state.selectedFinding === key ? "selected" : "";
+    return `<div class="finding ${sel}" data-severity="${esc(f.severity)}" data-check="${esc(f.check)}" data-server="${esc(url)}" data-key="${key}">
               <span class="sigil sev-${esc(f.severity)}">${esc(SIGIL[f.severity])}</span>
               <span class="check">${esc(f.check)}</span>
               <span class="sev sev-${esc(f.severity)}">${esc(f.severity)}</span>
@@ -432,9 +434,8 @@ function renderDetail(){
     el.innerHTML = `<div class="empty">select a finding to view evidence, repro, remediation</div>`;
     return;
   }
-  // Find the finding by key.
-  const items = flatFindings();
-  const found = items.find(({ url, f }, i) => `${url}|${f.check}|${i}` === state.selectedFinding);
+  // Find the finding by stable key.
+  const found = flatFindings().find(item => item.key === state.selectedFinding);
   if (!found){
     el.innerHTML = `<div class="empty">finding not found</div>`;
     return;
