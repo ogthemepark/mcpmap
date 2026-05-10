@@ -1,5 +1,4 @@
 from __future__ import annotations
-import asyncio
 import uuid
 from datetime import datetime, timezone
 from ipaddress import ip_network
@@ -118,7 +117,7 @@ async def run_scan(target: str, passive: bool = False, rate: int = 10) -> ScanRe
         if not srv:
             continue
         servers.append(srv)
-        findings[srv.url] = await run_checks(srv, all_checks(), passive=passive)
+        findings[srv.url] = await run_checks(srv, all_checks(), passive=passive, rate_rps=rate)
 
     return ScanResult(
         scan_id=f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:6]}",
