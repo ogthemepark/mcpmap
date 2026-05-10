@@ -39,6 +39,7 @@ class Auth002AudienceBinding(BaseCheck):
                                 title="Token audience not validated (RFC 8707 violation)",
                                 evidence={
                                     "no_token_status": no_tok_status,
+                                    "no_token_response_excerpt": no_tok_text[:256],
                                     "bogus_token": DECOY_TOKEN,
                                     "bogus_token_status": r.status,
                                     "response_excerpt": text[:512],

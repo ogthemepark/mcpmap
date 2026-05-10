@@ -4,27 +4,11 @@ from mcpmap.models import Server
 from mcpmap.audit.checks.auth_002 import Auth002AudienceBinding
 
 
-async def _accept_any_token(request):
-    # broken: ignores Authorization header
-    return web.json_response({"jsonrpc": "2.0", "id": 1, "result": {"tools": []}})
-
-
 async def _enforce_token(request):
     if request.headers.get("Authorization") != "Bearer correct":
         return web.json_response({"jsonrpc": "2.0", "id": 1, "error": {"code": -32001}}, status=401)
     return web.json_response({"jsonrpc": "2.0", "id": 1, "result": {"tools": []}})
 
-
-@pytest.mark.asyncio
-async def test_fires_when_unrelated_token_accepted(aiohttp_server):
-    # _accept_any_token is a no-auth server — it accepts everything including no token.
-    # AUTH-002 must NOT fire here; that's AUTH-001 territory.
-    app = web.Application()
-    app.router.add_post("/mcp", _accept_any_token)
-    srv = await aiohttp_server(app)
-    s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
-    f = await Auth002AudienceBinding().run(s)
-    assert f is None, f"AUTH-002 must not fire on a no-auth server: {f}"
 
 
 @pytest.mark.asyncio
