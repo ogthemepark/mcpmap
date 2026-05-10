@@ -5,9 +5,6 @@ from aiohttp import web
 from typer.testing import CliRunner
 from mcpmap.cli import app
 
-runner = CliRunner()
-
-
 async def _noauth_handler(request):
     body = await request.json()
     rid = body.get("id", 1)
@@ -36,11 +33,15 @@ async def noauth(aiohttp_server):
 
 @pytest.mark.asyncio
 async def test_audit_verbose_shows_remediation(noauth):
+    runner = CliRunner()
     url = f"http://{noauth.host}:{noauth.port}/mcp"
     # Run invoke in a thread executor so the event loop stays free to serve
     # the aiohttp test server while the CLI command makes HTTP requests.
     loop = asyncio.get_running_loop()
-    r = await loop.run_in_executor(None, lambda: runner.invoke(app, ["audit", url, "--verbose"]))
+    r = await asyncio.wait_for(
+        loop.run_in_executor(None, lambda: runner.invoke(app, ["audit", url, "--verbose"])),
+        timeout=30,
+    )
     assert r.exit_code == 0, r.output
     assert "AUTH-001" in r.output
     assert "Remediation" in r.output or "remediation" in r.output.lower()
@@ -49,9 +50,13 @@ async def test_audit_verbose_shows_remediation(noauth):
 
 @pytest.mark.asyncio
 async def test_audit_quiet_omits_remediation(noauth):
+    runner = CliRunner()
     url = f"http://{noauth.host}:{noauth.port}/mcp"
     loop = asyncio.get_running_loop()
-    r = await loop.run_in_executor(None, lambda: runner.invoke(app, ["audit", url]))
+    r = await asyncio.wait_for(
+        loop.run_in_executor(None, lambda: runner.invoke(app, ["audit", url])),
+        timeout=30,
+    )
     assert r.exit_code == 0, r.output
     assert "AUTH-001" in r.output
     assert "OAuth" not in r.output

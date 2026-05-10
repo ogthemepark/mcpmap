@@ -85,7 +85,7 @@ def audit(
             def _thread_target():
                 try:
                     result_holder.append(asyncio.run(coro))
-                except Exception as exc:  # noqa: BLE001
+                except BaseException as exc:  # noqa: BLE001
                     exc_holder.append(exc)
 
             import threading
