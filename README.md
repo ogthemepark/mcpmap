@@ -41,6 +41,22 @@ mcpmap report scan.json --format html --out scan.html
 open scan.html
 ```
 
+## From scan to coordinated-disclosure report
+
+Capture findings, then export a paste-ready writeup for one of them:
+
+```bash
+mcpmap scan 127.0.0.1 --out scan.json
+mcpmap poc scan.json --check INJECT-001 --out inject-poc.md
+# inject-poc.md is now ready to paste into HackerOne / Jira / email.
+```
+
+You can also browse findings with full evidence inline:
+
+```bash
+mcpmap audit http://127.0.0.1:8006/mcp --verbose
+```
+
 ## Commands
 
 | Command | Purpose |
@@ -49,6 +65,7 @@ open scan.html
 | `mcpmap fingerprint <url>` | Identify framework / version / capabilities. |
 | `mcpmap audit <url>` | Run vulnerability check matrix. |
 | `mcpmap scan <target>` | Pipeline: discover → fingerprint → audit. |
+| `mcpmap poc <scan.json> --check <ID>` | Render a per-finding markdown PoC for coordinated disclosure. |
 | `mcpmap configs` | Audit local stdio MCP configs (Claude Desktop, Cursor, etc.). |
 | `mcpmap report <scan.json>` | Render JSON / Markdown / HTML. |
 
