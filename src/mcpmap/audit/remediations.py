@@ -9,7 +9,7 @@ from mcpmap.audit.check_ids import legacy_to_canonical
 @dataclass(frozen=True)
 class Remediation:
     summary: str
-    references: list[str]
+    references: tuple[str, ...] = ()
     cwe: str = ""
 
 
@@ -23,7 +23,7 @@ def all_remediations(path: str | None = None) -> dict[str, Remediation]:
     return {
         check_id: Remediation(
             summary=entry.get("summary", "").strip(),
-            references=list(entry.get("references", [])),
+            references=tuple(entry.get("references", [])),
             cwe=entry.get("cwe", ""),
         )
         for check_id, entry in raw.items()
