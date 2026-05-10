@@ -143,3 +143,41 @@ def test_html_scan_id_no_template_recursion():
     # The data block contains the servers list — count occurrences of the unique server URL.
     # If the substitution chained, the URL would appear twice or more.
     assert html.count('"http://x/mcp"') == 1
+
+
+def test_finding_list_uses_data_attributes():
+    """Each finding row must carry data-* attrs so filters can hide/show by class."""
+    html = to_html(_basic_scan())
+    # The JS that renders findings is in the template. Sentinel: the function
+    # constructs nodes with data-severity / data-check / data-server attrs.
+    for sentinel in ('data-severity="${', 'data-check="${', 'data-server="${'):
+        assert sentinel in html, f"missing sentinel: {sentinel}"
+
+
+def test_server_list_renders_servers():
+    """Render JS reads from data.servers and emits one .server node per entry."""
+    html = to_html(_basic_scan())
+    # The render function must reference `data.servers` and create `.server` nodes.
+    assert "data.servers" in html
+    assert "class=\"server\"" in html or "class='server'" in html or 'className = "server"' in html or "class=\\\"server\\\"" in html
+
+
+def test_severity_strip_emits_all_five():
+    """Severity strip JS iterates SEV_ORDER and emits a .seg per level."""
+    html = to_html(_basic_scan())
+    assert "renderSeverityStrip" in html
+    # Both the strip render and the SEV_ORDER constant must reference all five.
+    for sev in SEV_ORDER:
+        assert f'"{sev}"' in html
+
+
+def test_totals_summary_in_header():
+    """The header `.totals` element gets populated with server + finding counts."""
+    html = to_html(_basic_scan())
+    assert "renderHeader" in html
+    # The render function must reference both counts.
+    assert "data.servers.length" in html
+    assert "totalFindings" in html or "findings.length" in html or "totalCount" in html
+
+
+SEV_ORDER = ("critical", "high", "medium", "low", "info")

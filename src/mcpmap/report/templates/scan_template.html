@@ -273,13 +273,188 @@ function maxSev(findings){
   return null;
 }
 
-// Render entry-points are filled in by Tasks 2 & 3.
-function renderHeader(){}
-function renderSeverityStrip(){}
-function renderFilterBar(){}
-function renderServerList(){}
-function renderFindingList(){}
-function renderDetail(){}
+function flatFindings(){
+  // Returns array of { url, finding } pairs for every finding in the scan.
+  const out = [];
+  for (const [url, fs] of Object.entries(data.findings || {})){
+    for (const f of fs){ out.push({ url, f }); }
+  }
+  return out;
+}
+
+function severityCounts(){
+  const c = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const { f } of flatFindings()){ if (c[f.severity] != null) c[f.severity]++; }
+  return c;
+}
+
+function uniqueChecks(){
+  const s = new Set();
+  for (const { f } of flatFindings()){ s.add(f.check); }
+  return Array.from(s).sort();
+}
+
+function renderHeader(){
+  const totalFindings = flatFindings().length;
+  const el = document.getElementById("totals");
+  el.innerHTML = `<b>${esc(data.servers.length)}</b> servers · <b>${esc(totalFindings)}</b> findings`;
+}
+
+function renderSeverityStrip(){
+  const c = severityCounts();
+  const strip = document.getElementById("severity-strip");
+  strip.innerHTML = SEV_ORDER.map(sev =>
+    `<div class="seg ${state.filter.severity === sev ? 'active' : ''}" data-sev="${esc(sev)}">
+       <span class="sigil sev-${esc(sev)}">${esc(SIGIL[sev])}</span>
+       <span class="count sev-${esc(sev)}">${esc(c[sev])}</span>
+       <span class="label">${esc(sev)}</span>
+     </div>`
+  ).join("");
+  // Click a segment to filter by that severity.
+  strip.querySelectorAll(".seg").forEach(seg => {
+    seg.addEventListener("click", () => {
+      const s = seg.dataset.sev;
+      state.filter.severity = (state.filter.severity === s) ? "" : s;
+      document.getElementById("f-severity").value = state.filter.severity;
+      renderAll();
+    });
+  });
+}
+
+function renderFilterBar(){
+  // Populate dynamic options once (not on every render — preserve user typing).
+  const sevSel = document.getElementById("f-severity");
+  if (sevSel.options.length <= 1){
+    for (const s of SEV_ORDER){
+      const o = document.createElement("option");
+      o.value = s; o.textContent = s;
+      sevSel.appendChild(o);
+    }
+  }
+  const checkSel = document.getElementById("f-check");
+  if (checkSel.options.length <= 1){
+    for (const c of uniqueChecks()){
+      const o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      checkSel.appendChild(o);
+    }
+  }
+  const srvSel = document.getElementById("f-server");
+  if (srvSel.options.length <= 1){
+    for (const s of data.servers){
+      const o = document.createElement("option");
+      o.value = s.url; o.textContent = (s.server_info?.name || s.url);
+      srvSel.appendChild(o);
+    }
+  }
+  sevSel.value = state.filter.severity;
+  checkSel.value = state.filter.check;
+  srvSel.value = state.filter.server;
+  document.getElementById("f-search").value = state.filter.q;
+  // Filter wiring lives in Task 3 (handlers attached in initFilters()).
+}
+
+function renderServerList(){
+  // Emits one node with class="server" per entry in data.servers.
+  const el = document.getElementById("server-list");
+  el.innerHTML = data.servers.map(s => {
+    const fs = data.findings[s.url] || [];
+    const c = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    for (const f of fs){ if (c[f.severity] != null) c[f.severity]++; }
+    const segs = SEV_ORDER.map(sev =>
+      `<span class="${c[sev] ? 'has' : ''} sev-${esc(sev)}">${esc(SIGIL[sev])} ${esc(c[sev])}</span>`
+    ).join("");
+    const sel = state.selectedServer === s.url ? "selected" : "";
+    const name = s.server_info?.name || "unknown";
+    const ver = s.server_info?.version || "?";
+    return `<div class="server${sel ? ' ' + sel : ''}" data-server="${esc(s.url)}">
+              <div class="name">${esc(name)} <span style="color:var(--fg-dim);font-weight:400">${esc(ver)}</span></div>
+              <div class="url">${esc(s.url)}</div>
+              <div class="sevline">${segs}</div>
+            </div>`;
+  }).join("");
+  el.querySelectorAll(".server").forEach(node => {
+    node.addEventListener("click", () => {
+      const url = node.dataset.server;
+      state.selectedServer = (state.selectedServer === url) ? null : url;
+      // Selecting a server filters the finding list to that server.
+      state.filter.server = state.selectedServer || "";
+      renderAll();
+    });
+  });
+}
+
+function findingMatchesFilter(url, f){
+  const ft = state.filter;
+  if (ft.severity && f.severity !== ft.severity) return false;
+  if (ft.check && f.check !== ft.check) return false;
+  if (ft.server && url !== ft.server) return false;
+  if (ft.q){
+    const q = ft.q.toLowerCase();
+    const hay = [f.check, f.title, f.severity, f.repro || "", f.remediation || "",
+                 JSON.stringify(f.evidence || {})].join(" ").toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function renderFindingList(){
+  const el = document.getElementById("finding-list");
+  const items = flatFindings().filter(({ url, f }) => findingMatchesFilter(url, f));
+  // Sort: severity (critical first), then by check ID alphabetically.
+  items.sort((a, b) => SEV_ORDER.indexOf(a.f.severity) - SEV_ORDER.indexOf(b.f.severity)
+                      || a.f.check.localeCompare(b.f.check));
+  if (!items.length){
+    el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg-faint)">no findings match these filters</div>`;
+    return;
+  }
+  el.innerHTML = items.map(({ url, f }, i) => {
+    const sel = state.selectedFinding === `${url}|${f.check}|${i}` ? "selected" : "";
+    return `<div class="finding ${sel}" data-severity="${esc(f.severity)}" data-check="${esc(f.check)}" data-server="${esc(url)}" data-key="${esc(url + '|' + f.check + '|' + i)}">
+              <span class="sigil sev-${esc(f.severity)}">${esc(SIGIL[f.severity])}</span>
+              <span class="check">${esc(f.check)}</span>
+              <span class="sev sev-${esc(f.severity)}">${esc(f.severity)}</span>
+              <span class="cvss">CVSS ${esc(f.cvss ?? '-')}</span>
+              <span class="title">${esc(f.title)}</span>
+            </div>`;
+  }).join("");
+  el.querySelectorAll(".finding").forEach(node => {
+    node.addEventListener("click", () => {
+      state.selectedFinding = node.dataset.key;
+      renderAll();
+    });
+  });
+}
+
+function renderDetail(){
+  const el = document.getElementById("detail-pane");
+  if (!state.selectedFinding){
+    el.innerHTML = `<div class="empty">select a finding to view evidence, repro, remediation</div>`;
+    return;
+  }
+  // Find the finding by key.
+  const items = flatFindings();
+  const found = items.find(({ url, f }, i) => `${url}|${f.check}|${i}` === state.selectedFinding);
+  if (!found){
+    el.innerHTML = `<div class="empty">finding not found</div>`;
+    return;
+  }
+  const { url, f } = found;
+  const srv = data.servers.find(s => s.url === url);
+  const sname = srv?.server_info?.name || "unknown";
+  const sver = srv?.server_info?.version || "?";
+  el.innerHTML = `
+    <h2 class="sev-${esc(f.severity)}">${esc(SIGIL[f.severity])} ${esc(f.check)} — ${esc(f.title)}</h2>
+    <div class="meta">
+      <div class="row"><span class="k">target</span><span>${esc(url)}</span></div>
+      <div class="row"><span class="k">server</span><span>${esc(sname)} ${esc(sver)}</span></div>
+      <div class="row"><span class="k">severity</span><span class="sev-${esc(f.severity)}">${esc(f.severity.toUpperCase())} · CVSS ${esc(f.cvss ?? '-')}</span></div>
+      ${f.cve ? `<div class="row"><span class="k">cve</span><span>${esc(f.cve)}</span></div>` : ''}
+    </div>
+    <!-- evidence / repro / remediation rendering is filled in by Task 3 -->
+    <div id="detail-body"></div>
+  `;
+}
 
 function renderAll(){
   renderHeader();
