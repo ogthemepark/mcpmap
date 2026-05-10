@@ -2,6 +2,7 @@ from __future__ import annotations
 import asyncio
 from mcpmap.models import Server, Finding
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.correlate import rollup
 
 
 async def _throttled(coro_factory, sem: asyncio.Semaphore, min_interval: float, last_ts: list[float]):
@@ -32,4 +33,5 @@ async def run_checks(
             *(_throttled(lambda c=c: c.run(server), sem, min_interval, last_ts) for c in enabled),
             return_exceptions=True,
         )
-    return [f for f in results if isinstance(f, Finding)]
+    findings = [f for f in results if isinstance(f, Finding)]
+    return rollup(findings)
