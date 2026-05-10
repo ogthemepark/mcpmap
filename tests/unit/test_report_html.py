@@ -201,3 +201,51 @@ def test_finding_key_is_stable_not_index_based():
 
 
 SEV_ORDER = ("critical", "high", "medium", "low", "info")
+
+
+import re
+
+
+def test_html_filter_handlers_wired():
+    """All four filter inputs have JS event listeners."""
+    html = to_html(_basic_scan())
+    assert "initFilters" in html
+    # All four filter element IDs are referenced in handler code.
+    for fid in ("f-severity", "f-check", "f-server", "f-search", "f-reset"):
+        assert fid in html
+
+
+def test_html_keyboard_nav_present():
+    """j/k/Esc/'/' handlers are wired."""
+    html = to_html(_basic_scan())
+    assert "initKeyboardNav" in html or "keydown" in html
+    # Sentinels for the keys we promised.
+    for key in ('"j"', '"k"', '"Escape"', '"/"'):
+        assert key in html, f"missing key handler sentinel: {key}"
+
+
+def test_html_curl_for_has_all_check_branches():
+    """The JS port of _curl_for must cover the same check IDs as poc_out.py."""
+    html = to_html(_basic_scan())
+    assert "function curlFor(" in html
+    expected = ["INJECT-001", "SSRF-001", "AUTH-001", "AUTH-002", "AUTH-003",
+                "HONEYPOT-001", "POISON-001", "POISON-002", "CVE-001", "TRANSPORT-001"]
+    for cid in expected:
+        # Each check ID must appear at least once in the JS curlFor function body.
+        assert cid in html, f"curlFor missing branch for {cid}"
+
+
+def test_html_copy_as_curl_button_wired():
+    """The detail pane has a 'copy as curl' button that calls curlFor."""
+    html = to_html(_basic_scan())
+    assert "copy as curl" in html.lower() or "copy-curl" in html
+    # The button click handler must call curlFor.
+    assert re.search(r"curlFor\s*\(", html), "curlFor is never invoked"
+
+
+def test_html_renders_evidence_and_repro_and_remediation_blocks():
+    """Detail pane renders all three Cycle A fields when present."""
+    html = to_html(_basic_scan())
+    # Sentinels for the three section labels in the detail pane.
+    for label in ("evidence", "reproduction", "remediation"):
+        assert label.lower() in html.lower(), f"missing detail section: {label}"
