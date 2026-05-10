@@ -33,7 +33,7 @@ ALL_CHECKS = [
 @pytest.mark.asyncio
 async def test_lab_discovers_all_ten_servers():
     targets = await active_discover("127.0.0.1", ports=list(range(8001, 8011)))
-    assert len(targets) >= 9
+    assert len(targets) == 10, f"expected all 10 lab servers, got {len(targets)}: {[(t.port, t.path_hint) for t in targets]}"
 
 
 async def _enrich(url: str) -> Server:
