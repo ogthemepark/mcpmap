@@ -91,43 +91,6 @@ async def http_paths_alive(
     return [p for p in results if p is not None]
 
 
-async def _jsonrpc_auth_probe(url: str, timeout: float = 5.0) -> bool:
-    """Return True if `url` responds to an MCP initialize POST with a valid JSON-RPC 2.0
-    error that indicates auth is required (401/403 HTTP or JSON-RPC error code).
-    Servers that gate the initialize handshake behind auth still speak MCP — they are
-    confirmed MCP targets even though `initialize()` returns None for them.
-    """
-    import uuid
-    payload = {
-        "jsonrpc": "2.0",
-        "id": str(uuid.uuid4()),
-        "method": "initialize",
-        "params": {
-            "protocolVersion": "2025-11-25",
-            "capabilities": {},
-            "clientInfo": {"name": "mcpmap", "version": "0.1.0"},
-        },
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    timeout_cfg = aiohttp.ClientTimeout(total=timeout)
-    try:
-        async with aiohttp.ClientSession(timeout=timeout_cfg, connector=aiohttp.TCPConnector(ssl=False)) as session:
-            async with session.post(url, json=payload, headers=headers) as r:
-                if r.status not in (401, 403):
-                    return False
-                try:
-                    data = await r.json(content_type=None)
-                except Exception:
-                    return False
-                # A well-formed JSON-RPC 2.0 error response proves the server speaks MCP
-                return isinstance(data, dict) and data.get("jsonrpc") == "2.0" and "error" in data
-    except Exception:
-        return False
-
-
 async def _sse_probe(url: str, timeout: float = 3.0) -> bool:
     """Return True if `url` responds to GET with an SSE stream that opens.
     Used as a fallback for legacy http+sse MCP transports where POST /sse 405s.
@@ -174,9 +137,6 @@ async def active_discover(
                 confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
                 break  # one path per (host, port) is enough
             if p.endswith("/sse") and await _sse_probe(url):
-                confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
-                break
-            if await _jsonrpc_auth_probe(url):
                 confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
                 break
     return confirmed
