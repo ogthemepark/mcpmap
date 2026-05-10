@@ -29,10 +29,12 @@ class Auth003OriginValidation(BaseCheck):
 
                 # Probe 2: evil Origin. If this succeeds where no-Origin failed, the server
                 # has Origin-aware logic but accepts attacker-controlled values.
+                # Require '"result"' in body — a 2xx with an HTML error page or JSONRPC error
+                # body is not a true positive (matches Probe 1 symmetry).
                 headers = {"Origin": EVIL_ORIGIN, "Accept": "application/json, text/event-stream"}
                 async with s.post(server.url, json=payload, headers=headers) as r:
-                    if 200 <= r.status < 300:
-                        text = await r.text()
+                    text = await r.text()
+                    if 200 <= r.status < 300 and '"result"' in text:
                         return Finding(
                             check=self.id,
                             aliases=list(_REC.legacy_aliases),
