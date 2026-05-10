@@ -57,6 +57,18 @@ You can also browse findings with full evidence inline:
 mcpmap audit http://127.0.0.1:8006/mcp --verbose
 ```
 
+## The HTML report
+
+`mcpmap report scan.json --format html --out scan.html` produces a single, self-contained dashboard:
+
+- **Severity strip** — five-color summary (critical / high / medium / low / info), click a segment to filter.
+- **Server roster** — per-server severity breakdown, click to filter the finding list.
+- **Finding list** — sorted critical-first; sigils (▣ ◆ ◈ ○ ·) double-encode severity for grayscale / colorblind viewing.
+- **Detail pane** — evidence JSON, reconstructed `curl` PoC, and the remediation guidance from Cycle A. The `copy as curl` button replays the exact request that triggered the finding.
+- **Keyboard:** `j` / `k` next & previous finding, `/` focuses search, `c` copies the current curl, `Esc` clears selection.
+
+The report is offline-first: no CDN fetches, no fonts pulled at runtime. Open it on a triage host air-gapped from the scanned network.
+
 ## Commands
 
 | Command | Purpose |
