@@ -118,3 +118,28 @@ def test_html_esc_helper_still_present():
     """Cycle A XSS hardening is preserved through the rewrite."""
     html = to_html(_basic_scan())
     assert "function esc(" in html
+
+
+def test_html_scan_id_is_escaped():
+    """A malicious scan_id must not be able to inject HTML/JS into the report."""
+    s = Server(url="http://x/mcp", server_info=ServerInfo(name="x", version="1"))
+    sr = ScanResult(scan_id="<script>alert(1)</script>", servers=[s], findings={})
+    html = to_html(sr)
+    # Raw injection sequence must not appear; entity-escaped form must appear instead.
+    assert "<script>alert(1)</script>" not in html.replace(
+        '<script>function esc(', ""  # ignore the legitimate inline script start
+    )
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+
+
+def test_html_scan_id_no_template_recursion():
+    """A scan_id of '{{DATA_JSON}}' must not cause the data block to be inserted twice."""
+    s = Server(url="http://x/mcp", server_info=ServerInfo(name="x", version="1"))
+    sr = ScanResult(scan_id="{{DATA_JSON}}", servers=[s], findings={})
+    html = to_html(sr)
+    # The escaped scan_id should appear in the title/header but the JSON data block
+    # should appear exactly once (in the const data assignment), not twice.
+    assert html.count("const data = ") == 1
+    # The data block contains the servers list — count occurrences of the unique server URL.
+    # If the substitution chained, the URL would appear twice or more.
+    assert html.count('"http://x/mcp"') == 1
