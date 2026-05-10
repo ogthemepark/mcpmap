@@ -1,13 +1,16 @@
 from __future__ import annotations
 import aiohttp
-from mcpmap.models import Server, Finding, Severity
+from mcpmap.models import Server, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
+
+_REC = by_id("MCP-AUTH-ORIGIN-MISVALIDATED")
 
 EVIL_ORIGIN = "https://evil.example"
 
 
 class Auth003OriginValidation(BaseCheck):
-    id = "AUTH-003"
+    id = _REC.canonical_id
     intrusive = False
 
     async def run(self, server: Server) -> Finding | None:
@@ -32,23 +35,24 @@ class Auth003OriginValidation(BaseCheck):
                         text = await r.text()
                         return Finding(
                             check=self.id,
-                            severity=Severity.MEDIUM,
+                            aliases=list(_REC.legacy_aliases),
+                            severity=Severity(_REC.default_severity),
+                            confidence=Confidence(_REC.default_confidence),
+                            cwe=_REC.cwe or None,
                             cvss=5.4,
-                            title="Origin header not validated (DNS-rebinding risk)",
-                            evidence={
-                                "no_origin_status": no_origin_status,
-                                "no_origin_response_excerpt": no_origin_text[:256],
-                                "sent_origin": EVIL_ORIGIN,
-                                "evil_origin_status": r.status,
-                                "response_excerpt": text[:256],
-                            },
-                            repro=f"curl -X POST {server.url} -H 'Origin: {EVIL_ORIGIN}' -d '{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}}'",
-                            remediation=(
-                                "Validate the Origin header against an explicit allowlist before "
-                                "accepting the request; for localhost-only servers, bind to 127.0.0.1 "
-                                "(not 0.0.0.0) and require Origin to be 'http://localhost' or a known "
-                                "client UI. Mitigates DNS-rebinding."
+                            cvss_vector="CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:L/I:L/A:N",
+                            title=_REC.title,
+                            evidence=Evidence(
+                                response_status=r.status,
+                                response_excerpt=text[:256],
+                                artifacts={
+                                    "no_origin_status": no_origin_status,
+                                    "no_origin_response_excerpt": no_origin_text[:256],
+                                    "sent_origin": EVIL_ORIGIN,
+                                    "evil_origin_status": r.status,
+                                },
                             ),
+                            repro=f"curl -X POST {server.url} -H 'Origin: {EVIL_ORIGIN}' -d '{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}}'",
                         )
         except aiohttp.ClientError:
             return None

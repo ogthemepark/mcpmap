@@ -1,7 +1,10 @@
 from __future__ import annotations
 import re
-from mcpmap.models import Server, Finding, Severity
+from mcpmap.models import Server, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
+
+_REC = by_id("MCP-TPA-DESC-INJECT")
 
 POISON_PATTERNS = [
     r"<\s*IMPORTANT\s*>",
@@ -21,7 +24,7 @@ _compiled = [re.compile(p, re.IGNORECASE) for p in POISON_PATTERNS]
 
 
 class Poison001ToolDescriptionRegex(BaseCheck):
-    id = "POISON-001"
+    id = _REC.canonical_id
     intrusive = False
 
     async def run(self, server: Server) -> Finding | None:
@@ -35,15 +38,15 @@ class Poison001ToolDescriptionRegex(BaseCheck):
             return None
         return Finding(
             check=self.id,
-            severity=Severity.HIGH,
+            aliases=list(_REC.legacy_aliases),
+            severity=Severity(_REC.default_severity),
+            confidence=Confidence(_REC.default_confidence),
+            cwe=_REC.cwe or None,
             cvss=8.0,
-            title="Tool description contains prompt-injection / TPA patterns",
-            evidence={"hits": hits},
-            repro="Inspect each flagged tool's `description` returned from tools/list.",
-            remediation=(
-                "Strip / reject prompt-injection markup (e.g., <IMPORTANT>, "
-                "system/assistant tags, references to ~/.ssh, ~/.aws, mcp.json) from "
-                "tool descriptions before publishing. Treat tool registration as "
-                "untrusted input and apply the same hygiene as user-generated content."
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N",
+            title=_REC.title,
+            evidence=Evidence(
+                artifacts={"hits": hits},
             ),
+            repro="Inspect each flagged tool's `description` returned from tools/list.",
         )

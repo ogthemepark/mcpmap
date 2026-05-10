@@ -40,5 +40,6 @@ async def test_inject_001_fires_on_canary_echo(vuln_srv):
     chk = Inject001CanaryEcho()
     assert chk.intrusive is True
     f = await chk.run(s)
-    assert f and f.check == "INJECT-001"
+    assert f and f.check == "MCP-TOOL-CMD-INJECT"
+    assert "INJECT-001" in f.aliases
     assert f.severity == "critical"

@@ -21,7 +21,8 @@ async def honeypot_srv(aiohttp_server):
 async def test_honeypot_fires_on_repeated_session_id(honeypot_srv):
     s = Server(url=f"http://{honeypot_srv.host}:{honeypot_srv.port}/mcp")
     f = await Honeypot001().run(s)
-    assert f and f.check == "HONEYPOT-001"
+    assert f and f.check == "MCP-META-HONEYPOT"
+    assert "HONEYPOT-001" in f.aliases
 
 
 @pytest.mark.asyncio
@@ -33,6 +34,8 @@ async def test_cve_001_matches_vulnerable_version():
     )
     f = await Cve001VersionMatch().run(s)
     assert f and "CVE-2025-6514" in (f.cve or "")
+    assert f.check == "MCP-CVE-VERSION-MATCH"
+    assert "CVE-001" in f.aliases
 
 
 @pytest.mark.asyncio

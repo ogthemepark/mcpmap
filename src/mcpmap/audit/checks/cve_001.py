@@ -1,11 +1,14 @@
 from __future__ import annotations
-from mcpmap.models import Server, Finding, Severity
+from mcpmap.models import Server, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
 from mcpmap.fingerprint.cves import cves_for
+
+_REC = by_id("MCP-CVE-VERSION-MATCH")
 
 
 class Cve001VersionMatch(BaseCheck):
-    id = "CVE-001"
+    id = _REC.canonical_id
     intrusive = False
 
     async def run(self, server: Server) -> Finding | None:
@@ -17,14 +20,19 @@ class Cve001VersionMatch(BaseCheck):
         m = max(matches, key=lambda c: c.cvss)
         return Finding(
             check=self.id,
+            aliases=list(_REC.legacy_aliases),
             severity=Severity(m.severity),
+            confidence=Confidence(_REC.default_confidence),
+            cwe=_REC.cwe or None,
             cvss=m.cvss,
             cve=m.cve,
             title=m.title,
-            evidence={"fingerprint_id": server.fingerprint_id, "version": server.server_info.version, "all_matches": [c.cve for c in matches]},
-            repro=f"See: {m.source}",
-            remediation=(
-                f"Upgrade {server.fingerprint_id} to a patched version. See the linked "
-                f"advisory for affected versions and fix details."
+            evidence=Evidence(
+                artifacts={
+                    "fingerprint_id": server.fingerprint_id,
+                    "version": server.server_info.version,
+                    "all_matches": [c.cve for c in matches],
+                },
             ),
+            repro=f"See: {m.source}",
         )

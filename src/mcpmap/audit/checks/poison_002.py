@@ -1,7 +1,10 @@
 from __future__ import annotations
 import unicodedata
-from mcpmap.models import Server, Finding, Severity
+from mcpmap.models import Server, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
+
+_REC = by_id("MCP-TPA-UNICODE-SMUGGLE")
 
 _HIDDEN_RANGES = [
     (0x200B, 0x200F),
@@ -24,7 +27,7 @@ def _has_hidden(text: str) -> list[str]:
 
 
 class Poison002UnicodeTags(BaseCheck):
-    id = "POISON-002"
+    id = _REC.canonical_id
     intrusive = False
 
     async def run(self, server: Server) -> Finding | None:
@@ -39,15 +42,15 @@ class Poison002UnicodeTags(BaseCheck):
             return None
         return Finding(
             check=self.id,
-            severity=Severity.HIGH,
+            aliases=list(_REC.legacy_aliases),
+            severity=Severity(_REC.default_severity),
+            confidence=Confidence(_REC.default_confidence),
+            cwe=_REC.cwe or None,
             cvss=8.0,
-            title="Tool description contains zero-width / unicode-tag characters",
-            evidence={"hits": hits},
-            repro="Inspect raw bytes of each flagged tool's description; render via xxd or hex viewer.",
-            remediation=(
-                "Reject tool descriptions whose NFKC-normalized form differs in length "
-                "from the raw form, and any text containing codepoints in U+200B–U+200F, "
-                "U+202A–U+202E, U+2060–U+206F, U+FEFF, or U+E0000–U+E007F. These ranges "
-                "are invisible to humans but parsed by LLM tokenizers."
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N",
+            title=_REC.title,
+            evidence=Evidence(
+                artifacts={"hits": hits},
             ),
+            repro="Inspect raw bytes of each flagged tool's description; render via xxd or hex viewer.",
         )

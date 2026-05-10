@@ -35,7 +35,8 @@ async def test_fires_on_unauth_tools_list(open_srv):
     s = Server(url=f"http://{open_srv.host}:{open_srv.port}/mcp")
     f = await Auth001UnauthToolsList().run(s)
     assert f is not None
-    assert f.check == "AUTH-001"
+    assert f.check == "MCP-AUTH-UNAUTH-LIST"
+    assert "AUTH-001" in f.aliases
     assert f.severity == "high"
 
 

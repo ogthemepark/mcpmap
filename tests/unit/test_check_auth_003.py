@@ -31,7 +31,8 @@ async def test_fires_on_permissive_origin(aiohttp_server):
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)
-    assert f and f.check == "AUTH-003"
+    assert f and f.check == "MCP-AUTH-ORIGIN-MISVALIDATED"
+    assert "AUTH-003" in f.aliases
 
 
 @pytest.mark.asyncio
@@ -71,4 +72,5 @@ async def test_auth_003_fires_when_no_origin_rejected_but_evil_accepted(aiohttp_
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)
-    assert f is not None and f.check == "AUTH-003"
+    assert f is not None and f.check == "MCP-AUTH-ORIGIN-MISVALIDATED"
+    assert "AUTH-003" in f.aliases

@@ -109,6 +109,7 @@ def audit(
         table.add_row(f.check, f.severity.value, str(f.cvss or "-"), f.title)
     rprint(table)
     if verbose:
+        from mcpmap.audit.remediations import lookup as _rem_lookup
         for f in fs:
             rprint(f"\n[bold cyan]── {f.check} ──[/bold cyan]")
             ev_data = f.evidence.model_dump(exclude_none=True) if hasattr(f.evidence, "model_dump") else (f.evidence or {})
@@ -117,8 +118,9 @@ def audit(
                 rprint(json.dumps(ev_data, indent=2))
             if f.repro:
                 rprint(f"[dim]Repro:[/dim] {f.repro}")
-            if f.remediation:
-                rprint(f"[dim]Remediation:[/dim] {f.remediation}")
+            remediation = f.remediation or (r := _rem_lookup(f.check)) and r.summary
+            if remediation:
+                rprint(f"[dim]Remediation:[/dim] {remediation}")
 
 
 @app.command()

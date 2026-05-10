@@ -2,8 +2,11 @@ from __future__ import annotations
 import re
 import uuid
 import aiohttp
-from mcpmap.models import Server, Tool, Finding, Severity
+from mcpmap.models import Server, Tool, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
+
+_REC = by_id("MCP-TOOL-CMD-INJECT")
 
 HINT_RE = re.compile(r"\b(command|cmd|exec|shell|file|filename|path|url|endpoint|webhook|uri)\b", re.I)
 
@@ -33,7 +36,7 @@ def _payloads(canary: str) -> list[str]:
 
 
 class Inject001CanaryEcho(BaseCheck):
-    id = "INJECT-001"
+    id = _REC.canonical_id
     intrusive = True
 
     async def run(self, server: Server) -> Finding | None:
@@ -68,15 +71,15 @@ class Inject001CanaryEcho(BaseCheck):
             return None
         return Finding(
             check=self.id,
-            severity=Severity.CRITICAL,
+            aliases=list(_REC.legacy_aliases),
+            severity=Severity(_REC.default_severity),
+            confidence=Confidence(_REC.default_confidence),
+            cwe=_REC.cwe or None,
             cvss=9.0,
-            title="Command injection via tool argument (canary echo confirmed)",
-            evidence={"canary": canary, "hits": hits},
-            repro="Re-send the recorded payload via curl tools/call with the same arg name.",
-            remediation=(
-                "Never pass tool arguments to a shell. Use list-form subprocess calls "
-                "(shell=False with explicit argv). For path arguments, validate against "
-                "an allowlist of expected directories and reject any input containing "
-                "shell metacharacters (`;`, `$`, `\\`` `, `|`, `&`, newline)."
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+            title=_REC.title,
+            evidence=Evidence(
+                artifacts={"canary": canary, "hits": hits},
             ),
+            repro="Re-send the recorded payload via curl tools/call with the same arg name.",
         )

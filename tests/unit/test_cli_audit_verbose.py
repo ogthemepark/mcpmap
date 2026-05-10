@@ -43,7 +43,7 @@ async def test_audit_verbose_shows_remediation(noauth):
         timeout=30,
     )
     assert r.exit_code == 0, r.output
-    assert "AUTH-001" in r.output
+    assert "MCP-AUTH-UNAUTH-LIST" in r.output
     assert "Remediation" in r.output or "remediation" in r.output.lower()
     assert "OAuth" in r.output
 
@@ -58,5 +58,5 @@ async def test_audit_quiet_omits_remediation(noauth):
         timeout=30,
     )
     assert r.exit_code == 0, r.output
-    assert "AUTH-001" in r.output
+    assert "MCP-AUTH-UNAUTH-LIST" in r.output
     assert "OAuth" not in r.output

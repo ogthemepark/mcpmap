@@ -76,5 +76,9 @@ async def test_each_check_fires_at_least_once():
         for f in findings:
             fired.add(f.check)
 
-    expected = {"AUTH-001", "AUTH-002", "AUTH-003", "POISON-001", "POISON-002", "INJECT-001", "SSRF-001", "TRANSPORT-001", "HONEYPOT-001", "CVE-001"}
+    expected = {
+        "MCP-AUTH-UNAUTH-LIST", "MCP-AUTH-AUDIENCE-MISBOUND", "MCP-AUTH-ORIGIN-MISVALIDATED",
+        "MCP-TPA-DESC-INJECT", "MCP-TPA-UNICODE-SMUGGLE", "MCP-TOOL-CMD-INJECT",
+        "MCP-RES-SSRF", "MCP-TRANSPORT-LEGACY-SSE", "MCP-META-HONEYPOT", "MCP-CVE-VERSION-MATCH",
+    }
     assert expected.issubset(fired), f"missing: {expected - fired}"
