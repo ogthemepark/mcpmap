@@ -22,7 +22,7 @@ The output is a deterministic JSON document (`schema_version: "1.1"`), a markdow
 
 ## Install
 
-Three ways, pick whichever fits how you ship things.
+Two ways, pick whichever fits how you ship things. (Not on PyPI yet — clone or build the image.)
 
 ### Docker (recommended — works the same on every host)
 
@@ -54,14 +54,7 @@ Two networking modes for reaching targets from inside the container:
     fingerprint http://mcp-cve-figma:8000/mcp
   ```
 
-### pip
-
-```bash
-pip install mcpmap                  # core
-pip install mcpmap[shodan]          # + Shodan source
-```
-
-### From source
+### From source (pip, editable)
 
 ```bash
 git clone https://github.com/<you>/mcpmap && cd mcpmap
