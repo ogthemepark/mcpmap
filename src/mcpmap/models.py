@@ -115,7 +115,7 @@ class ScanConfig(BaseModel):
 
 
 class ScanResult(BaseModel):
-    schema_version: str = "1.0"
+    schema_version: str = "1.1"
     scan_id: str
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     config: ScanConfig = Field(default_factory=ScanConfig)
