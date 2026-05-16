@@ -22,18 +22,53 @@ The output is a deterministic JSON document (`schema_version: "1.1"`), a markdow
 
 ## Install
 
+Three ways, pick whichever fits how you ship things.
+
+### Docker (recommended — works the same on every host)
+
+```bash
+docker build -t mcpmap .
+docker run --rm mcpmap --help
+```
+
+The image is ~208 MB, ships with the Shodan extra installed, and runs as a non-root user. Scan a target and write the result back to your host:
+
+```bash
+docker run --rm -v "$PWD":/workspace mcpmap scan 10.0.0.0/24 --out /workspace/scan.json
+```
+
+Two networking modes for reaching targets from inside the container:
+
+- **Reach host-published ports** (e.g. the bundled testlab on `127.0.0.1:8001–8010`):
+  ```bash
+  docker run --rm --add-host=host.docker.internal:host-gateway \
+    -v "$PWD":/workspace mcpmap \
+    scan host.docker.internal --out /workspace/scan.json
+  ```
+  (On Linux you can also use `--network host` and keep `127.0.0.1` as the target.)
+
+- **Join the testlab's Docker network** and reach services by name:
+  ```bash
+  docker run --rm --network testlab_default \
+    -v "$PWD":/workspace mcpmap \
+    fingerprint http://mcp-cve-figma:8000/mcp
+  ```
+
+### pip
+
 ```bash
 pip install mcpmap                  # core
 pip install mcpmap[shodan]          # + Shodan source
 ```
 
-From source:
+### From source
+
 ```bash
 git clone https://github.com/<you>/mcpmap && cd mcpmap
 pip install -e ".[dev,shodan]"
 ```
 
-Requires Python 3.11+. For the lab demo you also need Docker.
+Python 3.11+ required. For the lab demo you also need Docker.
 
 ---
 

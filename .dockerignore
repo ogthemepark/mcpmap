@@ -1,0 +1,40 @@
+# Keep the build context tiny — we only need pyproject.toml, README, src/, data/.
+.git
+.gitignore
+.venv
+.cache
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.coverage
+htmlcov
+dist
+build
+*.egg-info
+
+# Lab and tests aren't in the runtime image
+testlab
+tests
+docs
+
+# Scan artifacts — never bake these into an image
+scan.json
+scan.html
+scan.md
+scan_*.json
+scan_*.html
+scan_*.md
+test.html
+
+# Editor & OS noise
+.DS_Store
+.idea
+.vscode
+
+# Project files not needed at runtime
+CLAUDE.md
+LICENSE
+uv.lock
+Dockerfile
+.dockerignore
