@@ -6,7 +6,7 @@ import typer
 from rich import print as rprint
 from rich.table import Table
 from mcpmap import __version__
-from mcpmap.pipeline import run_scan, _enrich_target, all_checks
+from mcpmap.pipeline import run_scan, enrich_target, all_checks
 from mcpmap.discover.active import active_discover, PRIORITY_PORTS
 from mcpmap.discover.shodan_source import shodan_targets
 from mcpmap.discover.configs import discover_configs
@@ -51,7 +51,7 @@ def fingerprint(url: str):
     from urllib.parse import urlparse
     u = urlparse(url)
     t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
-    s = asyncio.run(_enrich_target(t))
+    s = asyncio.run(enrich_target(t))
     if not s:
         rprint("[red]not an MCP server[/red]")
         raise typer.Exit(1)
@@ -99,7 +99,7 @@ def audit(
 
     u = urlparse(url)
     t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
-    s = _run(_enrich_target(t))
+    s = _run(enrich_target(t))
     if not s:
         rprint("[red]not an MCP server[/red]")
         raise typer.Exit(1)

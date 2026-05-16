@@ -51,7 +51,7 @@ def _expand_cidr(cidr: str) -> list[str]:
     return [str(ip) for ip in ip_network(cidr, strict=False).hosts()]
 
 
-async def _enrich_target(t: Target) -> Server | None:
+async def enrich_target(t: Target) -> Server | None:
     scheme = "https" if t.port in (443, 8443) else "http"
     path = t.path_hint or "/mcp"
     url = f"{scheme}://{t.host}:{t.port}{path}"
@@ -77,6 +77,9 @@ async def _enrich_target(t: Target) -> Server | None:
         except Exception:
             pass
     return server
+
+
+_enrich_target = enrich_target  # back-compat alias
 
 
 async def run_scan(target: str, passive: bool = False, rate: int = 10) -> ScanResult:
@@ -113,7 +116,7 @@ async def run_scan(target: str, passive: bool = False, rate: int = 10) -> ScanRe
     servers: list[Server] = []
     findings: dict[str, list] = {}
     for t in targets:
-        srv = await _enrich_target(t)
+        srv = await enrich_target(t)
         if not srv:
             continue
         servers.append(srv)
