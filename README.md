@@ -270,6 +270,19 @@ Existing tooling either scans static config files (`mcp-scan`, Snyk Agent Scan) 
 - `docs/superpowers/specs/` — full design spec
 - `docs/superpowers/plans/` — implementation plans (Plan 1: stabilize; Plan 2: standardize data model; Plan 3: extend coverage)
 
+## Contributing
+
+The MCP threat landscape moves quickly, and `mcpmap` is most useful when its check matrix, fingerprint database, and CVE corpus track what defenders are actually seeing in the wild. Contributions that extend any of these are especially welcome:
+
+- **A new audit check** — see `src/mcpmap/audit/base.py` for the interface and `src/mcpmap/audit/check_ids.py` for the canonical-ID registry. New checks should ship with a paired deliberately-vulnerable lab service under `testlab/services/` so the integration suite can prove the check fires.
+- **Fingerprint or CVE entries** — `data/fingerprints.yaml` and `data/cves.yaml`. The bar is low: a server name, a version range, and a citation.
+- **Remediation copy** — `data/remediations.yaml`. Operator-facing language that actually helps someone fix the finding is genuinely hard to write; good edits here go a long way.
+- **Prior-art pointers we've missed** — a writeup of a novel attack technique, a CVE we haven't catalogued, or a fingerprint heuristic from your own recon work.
+
+Issues and ideas count too. The project is small enough that a thoughtful bug report or a "have you considered..." often translates directly into the next release. Before opening a PR please read [`docs/ETHICS.md`](docs/ETHICS.md) and run `pytest tests/unit -q` (and the lab integration suite if your change touches scanning behavior). For security-sensitive reports about `mcpmap` itself, please use a private channel rather than a public issue.
+
+If `mcpmap` is useful to you, the most valuable thing you can do is tell us where it fell short — silent users teach the project nothing, and the gap between "scanner that works on a lab" and "scanner that works on the messy real internet" is closed one honest report at a time.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
