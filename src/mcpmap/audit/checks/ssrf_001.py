@@ -1,7 +1,10 @@
 from __future__ import annotations
 import aiohttp
-from mcpmap.models import Server, Finding, Severity
+from mcpmap.models import Server, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
+
+_REC = by_id("MCP-RES-SSRF")
 
 # Each probe: (uri, body_fingerprints).
 # A finding fires only if the response body contains AT LEAST ONE of the fingerprints —
@@ -15,7 +18,7 @@ PROBES = [
 
 
 class Ssrf001ResourcesRead(BaseCheck):
-    id = "SSRF-001"
+    id = _REC.canonical_id
     intrusive = True
 
     async def run(self, server: Server) -> Finding | None:
@@ -44,16 +47,15 @@ class Ssrf001ResourcesRead(BaseCheck):
             return None
         return Finding(
             check=self.id,
-            severity=Severity.HIGH,
+            aliases=list(_REC.legacy_aliases),
+            severity=Severity(_REC.default_severity),
+            confidence=Confidence(_REC.default_confidence),
+            cwe=_REC.cwe or None,
             cvss=8.6,
-            title="resources/read accepts dangerous URI schemes (SSRF / local-file disclosure)",
-            evidence={"hits": hits},
-            repro="Replay any hit URI via tools/call resources/read.",
-            remediation=(
-                "Restrict resources/read URI schemes to a strict allowlist. For file://, "
-                "constrain to specific directories the server is meant to expose. For "
-                "http(s)://, block link-local (169.254.0.0/16), loopback, and cloud "
-                "metadata addresses (169.254.169.254, metadata.google.internal). Resolve "
-                "DNS once and verify the resolved IP is in the allowed set."
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+            title=_REC.title,
+            evidence=Evidence(
+                artifacts={"hits": hits},
             ),
+            repro="Replay any hit URI via tools/call resources/read.",
         )

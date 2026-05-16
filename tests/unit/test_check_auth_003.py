@@ -31,7 +31,8 @@ async def test_fires_on_permissive_origin(aiohttp_server):
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)
-    assert f and f.check == "AUTH-003"
+    assert f and f.check == "MCP-AUTH-ORIGIN-MISVALIDATED"
+    assert "AUTH-003" in f.aliases
 
 
 @pytest.mark.asyncio
@@ -71,4 +72,24 @@ async def test_auth_003_fires_when_no_origin_rejected_but_evil_accepted(aiohttp_
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)
-    assert f is not None and f.check == "AUTH-003"
+    assert f is not None and f.check == "MCP-AUTH-ORIGIN-MISVALIDATED"
+    assert "AUTH-003" in f.aliases
+
+
+@pytest.mark.asyncio
+async def test_auth_003_no_false_positive_when_evil_origin_returns_200_error_body(aiohttp_server):
+    """Regression: Probe 2 must not fire when server returns 200 with a JSONRPC error body
+    (no '"result"' key) even for the evil Origin — just a non-result 2xx is not a true positive."""
+    async def origin_aware_error_body(request):
+        origin = request.headers.get("Origin")
+        if not origin:
+            # Probe 1: no Origin → 403 (so gate doesn't short-circuit)
+            return web.Response(status=403)
+        # Evil Origin → 200 with error body (no "result" key)
+        return web.json_response({"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "no result here"}})
+
+    app = web.Application(); app.router.add_post("/mcp", origin_aware_error_body)
+    srv = await aiohttp_server(app)
+    s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
+    f = await Auth003OriginValidation().run(s)
+    assert f is None, f"AUTH-003 false-positive on 200+error-body response: {f}"

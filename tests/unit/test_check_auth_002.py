@@ -52,4 +52,5 @@ async def test_auth_002_fires_when_token_required_but_audience_unchecked(aiohttp
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth002AudienceBinding().run(s)
-    assert f is not None and f.check == "AUTH-002"
+    assert f is not None and f.check == "MCP-AUTH-AUDIENCE-MISBOUND"
+    assert "AUTH-002" in f.aliases

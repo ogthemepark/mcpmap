@@ -1,6 +1,8 @@
 from __future__ import annotations
 import json
 from mcpmap.models import ScanResult, Severity
+from mcpmap.audit.remediations import lookup as lookup_remediation
+from mcpmap.audit.check_ids import canonical_to_legacy
 
 _SEVERITY_ORDER = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3, Severity.INFO: 4}
 
@@ -44,18 +46,27 @@ def to_markdown(result: ScanResult) -> str:
         lines.append("### Details")
         lines.append("")
         for f in fs_sorted:
-            lines.append(f"#### {_md_line(f.check)} — {_md_line(f.title)}")
+            legacy = canonical_to_legacy(f.check)
+            legacy_str = f" (legacy: {', '.join(legacy)})" if legacy else ""
+            prefix = "↳ " if f.related_to else ""
+            lines.append(f"#### {prefix}{_md_line(f.check)}{legacy_str} — {_md_line(f.title)}")
             lines.append(f"**Severity:** {_md_line(f.severity.value)} (CVSS {f.cvss if f.cvss is not None else '-'})")
             lines.append("")
-            if f.evidence:
+            ev_data = f.evidence.model_dump(exclude_none=True) if hasattr(f.evidence, "model_dump") else (f.evidence or {})
+            if ev_data:
                 lines.append("```json")
-                lines.append(json.dumps(f.evidence, indent=2))
+                lines.append(json.dumps(ev_data, indent=2))
                 lines.append("```")
                 lines.append("")
             if f.repro:
                 lines.append(f"**Repro:** {_md_line(f.repro)}")
                 lines.append("")
-            if f.remediation:
-                lines.append(f"**Remediation:** {_md_line(f.remediation)}")
+            remediation_text = f.remediation
+            if not remediation_text:
+                rem = lookup_remediation(f.check)
+                if rem:
+                    remediation_text = rem.summary
+            if remediation_text:
+                lines.append(f"**Remediation:** {_md_line(remediation_text)}")
                 lines.append("")
     return "\n".join(lines)

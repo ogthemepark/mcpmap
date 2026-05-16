@@ -412,9 +412,11 @@ function renderFindingList(){
   el.innerHTML = items.map((item, i) => {
     const { url, f, key } = item;
     const sel = state.selectedFinding === key ? "selected" : "";
+    const indent = f.related_to ? '↳ ' : '';
+    const aliases = (f.aliases && f.aliases.length) ? ` (${f.aliases.join(', ')})` : '';
     return `<div class="finding ${sel}" data-severity="${esc(f.severity)}" data-check="${esc(f.check)}" data-server="${esc(url)}" data-key="${key}">
               <span class="sigil sev-${esc(f.severity)}">${esc(SIGIL[f.severity])}</span>
-              <span class="check">${esc(f.check)}</span>
+              <span class="check">${indent}${esc(f.check)}${esc(aliases)}</span>
               <span class="sev sev-${esc(f.severity)}">${esc(f.severity)}</span>
               <span class="cvss">CVSS ${esc(f.cvss ?? '-')}</span>
               <span class="title">${esc(f.title)}</span>
@@ -536,9 +538,24 @@ function initKeyboardNav(){
 
 // ---------- curl reconstruction (JS port of mcpmap.report.poc_out._curl_for) ----------
 
+const _LEGACY_TO_CANON = {
+  "AUTH-001": "MCP-AUTH-UNAUTH-LIST",
+  "AUTH-002": "MCP-AUTH-AUDIENCE-MISBOUND",
+  "AUTH-003": "MCP-AUTH-ORIGIN-MISVALIDATED",
+  "POISON-001": "MCP-TPA-DESC-INJECT",
+  "POISON-002": "MCP-TPA-UNICODE-SMUGGLE",
+  "INJECT-001": "MCP-TOOL-CMD-INJECT",
+  "SSRF-001": "MCP-RES-SSRF",
+  "TRANSPORT-001": "MCP-TRANSPORT-LEGACY-SSE",
+  "HONEYPOT-001": "MCP-META-HONEYPOT",
+  "CVE-001": "MCP-CVE-VERSION-MATCH",
+};
+function _norm(check){ return _LEGACY_TO_CANON[check] || check; }
+
 function _extraHeaders(check){
-  if (check === "AUTH-002") return ["-H 'Authorization: Bearer mcpmap.decoy.unrelated-audience.AAAAAAAA'"];
-  if (check === "AUTH-003") return ["-H 'Origin: https://evil.example'"];
+  const c = _norm(check);
+  if (c === "MCP-AUTH-AUDIENCE-MISBOUND") return ["-H 'Authorization: Bearer mcpmap.decoy.unrelated-audience.AAAAAAAA'"];
+  if (c === "MCP-AUTH-ORIGIN-MISVALIDATED") return ["-H 'Origin: https://evil.example'"];
   return [];
 }
 
@@ -556,8 +573,9 @@ function _curl(url, body, extra){
 }
 
 function curlFor(check, url, finding){
+  const c = _norm(check);
   const ev = finding.evidence || {};
-  if (check === "INJECT-001"){
+  if (c === "MCP-TOOL-CMD-INJECT"){
     const hits = ev.hits || [];
     if (!hits.length) return "";
     const h = hits[0];
@@ -568,7 +586,7 @@ function curlFor(check, url, finding){
                    params: { name: tool, arguments: { [arg]: payload } } };
     return _curl(url, body);
   }
-  if (check === "SSRF-001"){
+  if (c === "MCP-RES-SSRF"){
     const hits = ev.hits || [];
     if (!hits.length) return "";
     const uri = hits[0].uri || "";
@@ -577,19 +595,19 @@ function curlFor(check, url, finding){
                    params: { uri } };
     return _curl(url, body);
   }
-  if (check === "AUTH-001" || check === "AUTH-002" || check === "AUTH-003"){
+  if (c === "MCP-AUTH-UNAUTH-LIST" || c === "MCP-AUTH-AUDIENCE-MISBOUND" || c === "MCP-AUTH-ORIGIN-MISVALIDATED"){
     const body = { jsonrpc: "2.0", id: 1, method: "tools/list" };
-    return _curl(url, body, _extraHeaders(check));
+    return _curl(url, body, _extraHeaders(c));
   }
-  if (check === "HONEYPOT-001"){
+  if (c === "MCP-META-HONEYPOT"){
     const body = { jsonrpc: "2.0", id: 1, method: "tools/list" };
     return _curl(url, body) + "\n# Repeat 3 times; observe identical Mcp-Session-Id.";
   }
-  if (check === "POISON-001" || check === "POISON-002" || check === "CVE-001"){
+  if (c === "MCP-TPA-DESC-INJECT" || c === "MCP-TPA-UNICODE-SMUGGLE" || c === "MCP-CVE-VERSION-MATCH"){
     const body = { jsonrpc: "2.0", id: 1, method: "tools/list" };
     return _curl(url, body) + "\n# Inspect the returned tool descriptions / serverInfo.version.";
   }
-  if (check === "TRANSPORT-001"){
+  if (c === "MCP-TRANSPORT-LEGACY-SSE"){
     return `curl -s -H 'Accept: text/event-stream' ${url}\n# Server speaks deprecated http+sse.`;
   }
   return _curl(url, { jsonrpc: "2.0", id: 1, method: "tools/list" });

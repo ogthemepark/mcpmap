@@ -51,3 +51,24 @@ def test_markdown_strips_newlines_from_remediation():
     # (otherwise it would break out of the surrounding structure).
     assert "line1\n```" not in md
     assert "line1" in md and "line2" in md
+
+
+def test_markdown_renders_remediation_from_yaml():
+    from mcpmap.models import ScanResult, Server, Finding, Severity
+    from mcpmap.report.markdown_out import to_markdown
+    sr = ScanResult(scan_id="x", servers=[Server(url="http://x/mcp")],
+                    findings={"http://x/mcp": [Finding(check="MCP-AUTH-UNAUTH-LIST", severity=Severity.HIGH, title="t")]})
+    md = to_markdown(sr)
+    assert "OAuth 2.1" in md  # comes from remediations.yaml
+    assert "AUTH-001" in md   # legacy alias shown
+
+
+def test_markdown_indents_correlated_findings():
+    from mcpmap.models import ScanResult, Server, Finding, Severity
+    from mcpmap.report.markdown_out import to_markdown
+    sr = ScanResult(scan_id="x", servers=[Server(url="http://x/mcp")], findings={"http://x/mcp": [
+        Finding(check="MCP-AUTH-UNAUTH-LIST", severity=Severity.HIGH, title="root"),
+        Finding(check="MCP-AUTH-AUDIENCE-MISBOUND", severity=Severity.HIGH, title="child", related_to="MCP-AUTH-UNAUTH-LIST"),
+    ]})
+    md = to_markdown(sr)
+    assert "↳" in md or "  -" in md   # some visible indent for the child

@@ -6,7 +6,7 @@ import typer
 from rich import print as rprint
 from rich.table import Table
 from mcpmap import __version__
-from mcpmap.pipeline import run_scan, _enrich_target, all_checks
+from mcpmap.pipeline import run_scan, enrich_target, all_checks
 from mcpmap.discover.active import active_discover, PRIORITY_PORTS
 from mcpmap.discover.shodan_source import shodan_targets
 from mcpmap.discover.configs import discover_configs
@@ -51,7 +51,7 @@ def fingerprint(url: str):
     from urllib.parse import urlparse
     u = urlparse(url)
     t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
-    s = asyncio.run(_enrich_target(t))
+    s = asyncio.run(enrich_target(t))
     if not s:
         rprint("[red]not an MCP server[/red]")
         raise typer.Exit(1)
@@ -99,7 +99,7 @@ def audit(
 
     u = urlparse(url)
     t = Target(host=u.hostname, port=u.port or 80, path_hint=u.path, source="url")
-    s = _run(_enrich_target(t))
+    s = _run(enrich_target(t))
     if not s:
         rprint("[red]not an MCP server[/red]")
         raise typer.Exit(1)
@@ -109,15 +109,18 @@ def audit(
         table.add_row(f.check, f.severity.value, str(f.cvss or "-"), f.title)
     rprint(table)
     if verbose:
+        from mcpmap.audit.remediations import lookup as _rem_lookup
         for f in fs:
             rprint(f"\n[bold cyan]── {f.check} ──[/bold cyan]")
-            if f.evidence:
+            ev_data = f.evidence.model_dump(exclude_none=True) if hasattr(f.evidence, "model_dump") else (f.evidence or {})
+            if ev_data:
                 rprint("[dim]Evidence:[/dim]")
-                rprint(json.dumps(f.evidence, indent=2))
+                rprint(json.dumps(ev_data, indent=2))
             if f.repro:
                 rprint(f"[dim]Repro:[/dim] {f.repro}")
-            if f.remediation:
-                rprint(f"[dim]Remediation:[/dim] {f.remediation}")
+            remediation = f.remediation or (r := _rem_lookup(f.check)) and r.summary
+            if remediation:
+                rprint(f"[dim]Remediation:[/dim] {remediation}")
 
 
 @app.command()

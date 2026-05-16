@@ -1,5 +1,4 @@
 from __future__ import annotations
-import asyncio
 import uuid
 from datetime import datetime, timezone
 from ipaddress import ip_network
@@ -52,7 +51,7 @@ def _expand_cidr(cidr: str) -> list[str]:
     return [str(ip) for ip in ip_network(cidr, strict=False).hosts()]
 
 
-async def _enrich_target(t: Target) -> Server | None:
+async def enrich_target(t: Target) -> Server | None:
     scheme = "https" if t.port in (443, 8443) else "http"
     path = t.path_hint or "/mcp"
     url = f"{scheme}://{t.host}:{t.port}{path}"
@@ -78,6 +77,9 @@ async def _enrich_target(t: Target) -> Server | None:
         except Exception:
             pass
     return server
+
+
+_enrich_target = enrich_target  # back-compat alias
 
 
 async def run_scan(target: str, passive: bool = False, rate: int = 10) -> ScanResult:
@@ -114,11 +116,11 @@ async def run_scan(target: str, passive: bool = False, rate: int = 10) -> ScanRe
     servers: list[Server] = []
     findings: dict[str, list] = {}
     for t in targets:
-        srv = await _enrich_target(t)
+        srv = await enrich_target(t)
         if not srv:
             continue
         servers.append(srv)
-        findings[srv.url] = await run_checks(srv, all_checks(), passive=passive)
+        findings[srv.url] = await run_checks(srv, all_checks(), passive=passive, rate_rps=rate)
 
     return ScanResult(
         scan_id=f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:6]}",

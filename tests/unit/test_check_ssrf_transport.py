@@ -25,14 +25,16 @@ async def test_ssrf_001_fires_on_etc_passwd_read(aiohttp_server):
     chk = Ssrf001ResourcesRead()
     assert chk.intrusive is True
     f = await chk.run(s)
-    assert f and f.check == "SSRF-001"
+    assert f and f.check == "MCP-RES-SSRF"
+    assert "SSRF-001" in f.aliases
 
 
 @pytest.mark.asyncio
 async def test_transport_001_fires_when_legacy_sse():
     s = Server(url="http://x/sse", transport="http+sse")
     f = await Transport001LegacySse().run(s)
-    assert f and f.check == "TRANSPORT-001"
+    assert f and f.check == "MCP-TRANSPORT-LEGACY-SSE"
+    assert "TRANSPORT-001" in f.aliases
 
 
 @pytest.mark.asyncio

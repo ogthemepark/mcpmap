@@ -1,11 +1,14 @@
 from __future__ import annotations
 import aiohttp
-from mcpmap.models import Server, Finding, Severity
+from mcpmap.models import Server, Finding, Severity, Confidence, Evidence
 from mcpmap.audit.base import BaseCheck
+from mcpmap.audit.check_ids import by_id
+
+_REC = by_id("MCP-META-HONEYPOT")
 
 
 class Honeypot001(BaseCheck):
-    id = "HONEYPOT-001"
+    id = _REC.canonical_id
     intrusive = False
 
     async def run(self, server: Server) -> Finding | None:
@@ -35,15 +38,14 @@ class Honeypot001(BaseCheck):
             return None
         return Finding(
             check=self.id,
-            severity=Severity.INFO,
+            aliases=list(_REC.legacy_aliases),
+            severity=Severity(_REC.default_severity),
+            confidence=Confidence(_REC.default_confidence),
+            cwe=_REC.cwe or None,
             cvss=0.0,
-            title="Likely honeypot — suppress in operator triage",
-            evidence={"signals": signals, "sample_session_ids": sids[:3]},
-            repro="Reconnect 3+ times; observe identical Mcp-Session-Id and/or empty tools/list.",
-            remediation=(
-                "Operator note: this is a honeypot indicator, not a vulnerability in "
-                "your code. If this server is yours and the signal is a false positive, "
-                "use distinct Mcp-Session-Id values per connection. If the server is "
-                "not yours, treat any other findings on this URL as low-confidence."
+            title=_REC.title,
+            evidence=Evidence(
+                artifacts={"signals": signals, "sample_session_ids": sids[:3]},
             ),
+            repro="Reconnect 3+ times; observe identical Mcp-Session-Id and/or empty tools/list.",
         )

@@ -226,8 +226,9 @@ def test_html_keyboard_nav_present():
 
 def test_html_curl_for_has_all_check_branches():
     """The JS port of _curl_for must cover the same check IDs as poc_out.py.
-    The IDs must appear *inside* the curlFor function body, not just anywhere
-    in the document — that ensures real branch coverage, not stray references."""
+    The curlFor body now uses canonical IDs internally (with a _LEGACY_TO_CANON
+    adapter map + _norm() helper for back-compat). Assert canonical IDs appear
+    inside curlFor, and legacy IDs appear in the _LEGACY_TO_CANON map."""
     html = to_html(_basic_scan())
     # Extract the curlFor function body. It runs from "function curlFor(" up to
     # the next top-level "function " or end of script.
@@ -239,10 +240,21 @@ def test_html_curl_for_has_all_check_branches():
         end = html.find("</script>", start)
     assert end > start, "couldn't isolate curlFor body"
     body = html[start:end]
-    expected = ["INJECT-001", "SSRF-001", "AUTH-001", "AUTH-002", "AUTH-003",
-                "HONEYPOT-001", "POISON-001", "POISON-002", "CVE-001", "TRANSPORT-001"]
-    for cid in expected:
+    # curlFor now branches on canonical IDs
+    canonical_expected = [
+        "MCP-TOOL-CMD-INJECT", "MCP-RES-SSRF",
+        "MCP-AUTH-UNAUTH-LIST", "MCP-AUTH-AUDIENCE-MISBOUND", "MCP-AUTH-ORIGIN-MISVALIDATED",
+        "MCP-META-HONEYPOT", "MCP-TPA-DESC-INJECT", "MCP-TPA-UNICODE-SMUGGLE",
+        "MCP-CVE-VERSION-MATCH", "MCP-TRANSPORT-LEGACY-SSE",
+    ]
+    for cid in canonical_expected:
         assert cid in body, f"curlFor body is missing branch for {cid}"
+    # Legacy IDs must exist in the _LEGACY_TO_CANON map (for back-compat adapter)
+    legacy_expected = ["INJECT-001", "SSRF-001", "AUTH-001", "AUTH-002", "AUTH-003",
+                       "HONEYPOT-001", "POISON-001", "POISON-002", "CVE-001", "TRANSPORT-001"]
+    assert "_LEGACY_TO_CANON" in html, "_LEGACY_TO_CANON map not found"
+    for lid in legacy_expected:
+        assert lid in html, f"legacy ID {lid} missing from _LEGACY_TO_CANON map"
 
 
 def test_html_copy_as_curl_button_wired():
