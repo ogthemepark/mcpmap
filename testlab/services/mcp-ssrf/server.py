@@ -1,4 +1,5 @@
-import urllib.parse, urllib.request
+import urllib.parse
+import urllib.request
 from aiohttp import web
 
 TOOLS = []

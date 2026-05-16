@@ -30,7 +30,8 @@ async def test_auth_002_silent_when_server_has_no_auth_at_all(aiohttp_server):
         body = await request.json()
         return web.json_response({"jsonrpc": "2.0", "id": body.get("id", 1), "result": {"tools": []}})
 
-    app = web.Application(); app.router.add_post("/mcp", no_auth)
+    app = web.Application()
+    app.router.add_post("/mcp", no_auth)
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth002AudienceBinding().run(s)
@@ -48,7 +49,8 @@ async def test_auth_002_fires_when_token_required_but_audience_unchecked(aiohttp
         body = await request.json()
         return web.json_response({"jsonrpc": "2.0", "id": body.get("id", 1), "result": {"tools": []}})
 
-    app = web.Application(); app.router.add_post("/mcp", lax_auth)
+    app = web.Application()
+    app.router.add_post("/mcp", lax_auth)
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth002AudienceBinding().run(s)

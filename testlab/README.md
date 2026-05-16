@@ -19,13 +19,13 @@ curl -s -X POST http://127.0.0.1:8001/mcp -H 'Content-Type: application/json' \
 
 | Port | Service | Demonstrates |
 |---|---|---|
-| 8001 | mcp-noauth | AUTH-001 (no auth on tools/list) |
-| 8002 | mcp-audience-broken | AUTH-002 (accepts any bearer) |
-| 8003 | mcp-origin-permissive | AUTH-003 (permissive Origin) |
-| 8004 | mcp-poisoned | POISON-001 (TPA in description) |
-| 8005 | mcp-unicode | POISON-002 (zero-width / tag chars) |
-| 8006 | mcp-cmdinject | INJECT-001 (shell injection) |
-| 8007 | mcp-ssrf | SSRF-001 (resources/read SSRF) |
-| 8008 | mcp-legacy-sse | TRANSPORT-001 (deprecated http+sse) |
-| 8009 | mcp-honeypot | HONEYPOT-001 (stable session id) |
-| 8010 | mcp-cve-figma | CVE-001 (vulnerable version banner) |
+| 8001 | mcp-noauth | `MCP-AUTH-UNAUTH-LIST` — no auth on `tools/list` |
+| 8002 | mcp-audience-broken | `MCP-AUTH-AUDIENCE-MISBOUND` — accepts any bearer (RFC 8707) |
+| 8003 | mcp-origin-permissive | `MCP-AUTH-ORIGIN-MISVALIDATED` — permissive `Origin` |
+| 8004 | mcp-poisoned | `MCP-TPA-DESC-INJECT` — prompt-injection markers in description |
+| 8005 | mcp-unicode | `MCP-TPA-UNICODE-SMUGGLE` — zero-width / unicode-tag chars |
+| 8006 | mcp-cmdinject | `MCP-TOOL-CMD-INJECT` — shell injection via tool argument |
+| 8007 | mcp-ssrf | `MCP-RES-SSRF` — `resources/read` SSRF |
+| 8008 | mcp-legacy-sse | `MCP-TRANSPORT-LEGACY-SSE` — deprecated `http+sse` |
+| 8009 | mcp-honeypot | `MCP-META-HONEYPOT` — stable session id, empty tools |
+| 8010 | mcp-cve-figma | `MCP-CVE-VERSION-MATCH` — vulnerable version banner |

@@ -2,16 +2,21 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 dist/
+build/
 *.egg-info/
 .DS_Store
 .cache/
-scan_*.json
-scan_*.html
-scan_*.md
-/scan.json
-/scan.html
-/scan.md
-/test.html
+
+# Scan artifacts — outputs of the tool, never source.
+scan*.json
+scan*.html
+scan*.md
+test.html
+
+# Editor / OS noise
+.idea/
+.vscode/

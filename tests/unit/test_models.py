@@ -1,4 +1,4 @@
-from mcpmap.models import Target, Server, Finding, Severity, ScanResult
+from mcpmap.models import Confidence, Evidence, Finding, ScanResult, Server, Severity, Target
 
 
 def test_target_minimal():
@@ -39,9 +39,6 @@ def test_finding_remediation_round_trips():
                 remediation="Reject the request.")
     j = f.model_dump_json()
     assert "Reject the request" in j
-
-
-from mcpmap.models import Finding, Severity, Confidence, Evidence
 
 
 def test_finding_accepts_confidence_cwe_and_vector():

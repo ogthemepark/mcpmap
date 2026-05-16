@@ -2,6 +2,8 @@ from __future__ import annotations
 import asyncio
 from typing import Iterable
 import aiohttp
+from mcpmap.discover.handshake import initialize
+from mcpmap.models import Target
 
 # Prioritized port list (see spec §6.1).
 PRIORITY_PORTS = [80, 443, 3000, 8000, 8080, 8443, 5173, 5174, 6274, 6277, 11434,
@@ -72,7 +74,6 @@ async def http_paths_alive(
     sem = asyncio.Semaphore(concurrency)
     timeout_cfg = aiohttp.ClientTimeout(total=timeout)
     connector = aiohttp.TCPConnector(ssl=False, limit=concurrency)
-    alive: list[str] = []
 
     async with aiohttp.ClientSession(timeout=timeout_cfg, connector=connector) as session:
         async def _probe(p: str) -> str | None:
@@ -112,10 +113,6 @@ async def _sse_probe(url: str, timeout: float = 3.0) -> bool:
                 return has_data
     except Exception:
         return False
-
-
-from mcpmap.discover.handshake import initialize
-from mcpmap.models import Target
 
 
 async def active_discover(

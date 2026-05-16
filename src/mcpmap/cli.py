@@ -67,7 +67,6 @@ def audit(
                                   help="Show evidence, repro, and remediation per finding."),
 ):
     """Run vulnerability checks against one MCP URL."""
-    import concurrent.futures
     from urllib.parse import urlparse
 
     def _run(coro):
@@ -172,7 +171,7 @@ def report(scan_json: str, fmt: str = typer.Option("html", "--format"), out: str
 @app.command()
 def poc(
     scan_json: str,
-    check: str = typer.Option(..., "--check", "-c", help="Check ID, e.g., INJECT-001"),
+    check: str = typer.Option(..., "--check", "-c", help="Check ID, e.g., MCP-TOOL-CMD-INJECT"),
     out: str | None = typer.Option(None, "--out", "-o", help="Write to file (default: stdout)"),
 ):
     """Emit a coordinated-disclosure-ready PoC writeup for one finding."""

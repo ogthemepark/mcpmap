@@ -1,4 +1,4 @@
-import os, subprocess
+import subprocess
 from aiohttp import web
 
 TOOLS = [{

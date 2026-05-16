@@ -1,4 +1,6 @@
-from mcpmap.models import ScanResult, Server, Finding, Severity, ServerInfo
+import re
+
+from mcpmap.models import Finding, ScanResult, Server, ServerInfo, Severity
 from mcpmap.report.html_out import to_html
 
 
@@ -201,9 +203,6 @@ def test_finding_key_is_stable_not_index_based():
 
 
 SEV_ORDER = ("critical", "high", "medium", "low", "info")
-
-
-import re
 
 
 def test_html_filter_handlers_wired():

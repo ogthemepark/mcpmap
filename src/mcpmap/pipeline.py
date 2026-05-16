@@ -79,9 +79,6 @@ async def enrich_target(t: Target) -> Server | None:
     return server
 
 
-_enrich_target = enrich_target  # back-compat alias
-
-
 async def run_scan(target: str, passive: bool = False, rate: int = 10) -> ScanResult:
     kind, items = _parse_target(target)
     targets: list[Target] = []

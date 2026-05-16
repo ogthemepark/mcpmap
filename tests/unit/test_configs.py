@@ -1,5 +1,5 @@
 from pathlib import Path
-from mcpmap.discover.configs import parse_config, ConfigEntry
+from mcpmap.discover.configs import parse_config
 
 FIX = Path(__file__).parent.parent / "fixtures"
 

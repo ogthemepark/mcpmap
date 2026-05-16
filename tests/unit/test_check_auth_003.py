@@ -52,7 +52,8 @@ async def test_auth_003_silent_when_server_has_no_auth_at_all(aiohttp_server):
         body = await request.json()
         return web.json_response({"jsonrpc": "2.0", "id": body.get("id", 1), "result": {"tools": []}})
 
-    app = web.Application(); app.router.add_post("/mcp", open_server)
+    app = web.Application()
+    app.router.add_post("/mcp", open_server)
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)
@@ -68,7 +69,8 @@ async def test_auth_003_fires_when_no_origin_rejected_but_evil_accepted(aiohttp_
         body = await request.json()
         return web.json_response({"jsonrpc": "2.0", "id": body.get("id", 1), "result": {"tools": []}})
 
-    app = web.Application(); app.router.add_post("/mcp", origin_lax)
+    app = web.Application()
+    app.router.add_post("/mcp", origin_lax)
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)
@@ -88,7 +90,8 @@ async def test_auth_003_no_false_positive_when_evil_origin_returns_200_error_bod
         # Evil Origin → 200 with error body (no "result" key)
         return web.json_response({"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "no result here"}})
 
-    app = web.Application(); app.router.add_post("/mcp", origin_aware_error_body)
+    app = web.Application()
+    app.router.add_post("/mcp", origin_aware_error_body)
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Auth003OriginValidation().run(s)

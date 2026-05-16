@@ -49,7 +49,8 @@ async def test_initialize_reports_streamable_http_transport(aiohttp_server):
             "jsonrpc": "2.0", "id": 1,
             "result": {"protocolVersion": "2025-11-25", "capabilities": {}, "serverInfo": {"name": "x", "version": "0"}},
         })
-    app = web.Application(); app.router.add_post("/mcp", h)
+    app = web.Application()
+    app.router.add_post("/mcp", h)
     srv = await aiohttp_server(app)
     res = await initialize(f"http://{srv.host}:{srv.port}/mcp")
     assert res is not None
@@ -67,7 +68,8 @@ async def test_initialize_reports_http_sse_transport(aiohttp_server):
             b'{"protocolVersion":"2024-11-05","capabilities":{},"serverInfo":{"name":"x","version":"0"}}}\n\n'
         )
         return resp
-    app = web.Application(); app.router.add_post("/mcp", h)
+    app = web.Application()
+    app.router.add_post("/mcp", h)
     srv = await aiohttp_server(app)
     res = await initialize(f"http://{srv.host}:{srv.port}/mcp")
     assert res is not None

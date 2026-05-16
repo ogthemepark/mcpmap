@@ -56,7 +56,8 @@ async def test_ssrf_001_does_not_false_positive_on_metadata_header_echo(aiohttp_
             }})
         return web.json_response({"jsonrpc": "2.0", "id": 1, "result": {}})
 
-    app = web.Application(); app.router.add_post("/mcp", echo)
+    app = web.Application()
+    app.router.add_post("/mcp", echo)
     srv = await aiohttp_server(app)
     s = Server(url=f"http://{srv.host}:{srv.port}/mcp")
     f = await Ssrf001ResourcesRead().run(s)

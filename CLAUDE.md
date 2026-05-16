@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Install (editable, with dev + optional Shodan source):
 ```bash
-pip install -e ".[dev,shodan]"
+uv sync                              # preferred — uses uv.lock
+pip install -e ".[dev,shodan]"       # equivalent
 ```
 
 Tests:
@@ -33,18 +34,20 @@ Three-stage pipeline composed in `src/mcpmap/pipeline.py`:
 
 1. **Discover** (`discover/`) — `active.py` does TCP sweep over `PRIORITY_PORTS` → HTTP path probe over `MCP_PATHS` → MCP `initialize` handshake. Alternate sources: `shodan_source.py`, `configs.py` (local stdio configs from Claude Desktop / Cursor / etc.).
 2. **Fingerprint** (`fingerprint/`) — `db.py` matches `serverInfo` against `data/fingerprints.yaml`; `cves.py` cross-references `data/cves.yaml`.
-3. **Audit** (`audit/`) — `runner.run_checks` fans out all `BaseCheck` subclasses concurrently via `asyncio.gather`. Each check in `audit/checks/*.py` returns a `Finding` or `None`. Checks set `intrusive = True` if they mutate target state (INJECT-001, SSRF-001) — those are skipped when `--passive`.
+3. **Audit** (`audit/`) — `runner.run_checks` fans out all `BaseCheck` subclasses concurrently via `asyncio.gather` (optionally throttled by `--rate`, see `_throttled`). Each check in `audit/checks/*.py` returns a `Finding` or `None`. Checks set `intrusive = True` if they mutate target state (`MCP-TOOL-CMD-INJECT`, `MCP-RES-SSRF`) — those are skipped when `--passive`. After fan-out, `audit/correlate.py:rollup` stamps `related_to` on dependent findings so reports can collapse confirmation noise under a root finding.
 
-`models.py` is the canonical schema (Pydantic). The serialized `ScanResult` (`scan.json`, `schema_version: "1.0"`) is the contract between scanning and reporting — keep it stable.
+`models.py` is the canonical schema (Pydantic). The serialized `ScanResult` (`scan.json`, `schema_version: "1.1"`) is the contract between scanning and reporting — keep it stable. Check IDs are canonical `MCP-*` (e.g. `MCP-AUTH-UNAUTH-LIST`); legacy short IDs (`AUTH-001`, `INJECT-001`, etc.) are maintained as aliases in `src/mcpmap/audit/check_ids.py`.
 
 **Reporting** (`report/`) emits the same `ScanResult` as JSON, Markdown, or self-contained HTML. The HTML template is `report/templates/scan_template.html`; per the README it must stay offline-first (no CDN/font fetches at runtime). `poc_out.py` renders single-finding markdown writeups for coordinated disclosure (`mcpmap poc`).
 
 ### Adding a new audit check
 
-1. Create `src/mcpmap/audit/checks/<id>.py` with a class subclassing `BaseCheck`, set `id = "FOO-001"`, `intrusive` if applicable, implement `async def run(self, server: Server) -> Finding | None`.
-2. Register it in `pipeline.all_checks()` *and* in the integration test's `ALL_CHECKS` list (`tests/integration/test_lab_full_scan.py`) — the integration test asserts every check fires at least once against the lab.
-3. Add a deliberately-vulnerable target service under `testlab/services/<name>/server.py` and wire it into `testlab/docker-compose.yml` on the next free `800X:8000` port (current range 8001–8010).
-4. Add a unit test under `tests/unit/test_check_<id>.py`.
+1. Pick a canonical ID (`MCP-<DOMAIN>-<SLUG>`) and register it in `src/mcpmap/audit/check_ids.py` with CWE + default severity/confidence. Add any legacy alias too.
+2. Create `src/mcpmap/audit/checks/<slug>.py` with a class subclassing `BaseCheck`, set `id = "<canonical>"`, `intrusive` if applicable, implement `async def run(self, server: Server) -> Finding | None`.
+3. Register it in `pipeline.all_checks()` *and* in the integration test's `ALL_CHECKS` list (`tests/integration/test_lab_full_scan.py`) — the integration test asserts every check fires at least once against the lab.
+4. Add a remediation entry keyed by canonical ID in `data/remediations.yaml` (summary + references). The renderer (`report/*`) pulls remediation copy from there; checks themselves leave `Finding.remediation = None`.
+5. Add a deliberately-vulnerable target service under `testlab/services/<name>/server.py` and wire it into `testlab/docker-compose.yml` on the next free `800X:8000` port (current range 8001–8010).
+6. Add a unit test under `tests/unit/test_check_<slug>.py`.
 
 ### Async patterns
 

@@ -270,8 +270,8 @@ Existing tooling either scans static config files (`mcp-scan`, Snyk Agent Scan) 
 - [`docs/ETHICS.md`](docs/ETHICS.md) — authorization, responsible disclosure, scope discipline
 - [`docs/ATTRIBUTIONS.md`](docs/ATTRIBUTIONS.md) — credit to the prior art this builds on
 - [`docs/DEMO.md`](docs/DEMO.md) — reproduce the lab demo step-by-step
-- `docs/superpowers/specs/` — full design spec
-- `docs/superpowers/plans/` — implementation plans (Plan 1: stabilize; Plan 2: standardize data model; Plan 3: extend coverage)
+- [`testlab/README.md`](testlab/README.md) — what each lab service demonstrates, port by port
+- [`CLAUDE.md`](CLAUDE.md) — architecture notes for contributors and AI assistants
 
 ## Contributing
 

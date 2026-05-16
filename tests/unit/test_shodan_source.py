@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import patch, MagicMock
 from mcpmap.discover.shodan_source import shodan_targets, load_filters
 

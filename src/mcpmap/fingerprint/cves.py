@@ -52,11 +52,15 @@ def in_range(version: str, spec: str) -> bool:
         target = _safe_version(rest)
         if target is None:
             return False
-        if op == ">=" and not (v >= target): return False
-        if op == ">" and not (v > target): return False
-        if op == "<=" and not (v <= target): return False
-        if op == "<" and not (v < target): return False
-        if op == "==" and not (v == target): return False
+        cmp = {
+            ">=": v >= target,
+            ">":  v > target,
+            "<=": v <= target,
+            "<":  v < target,
+            "==": v == target,
+        }
+        if not cmp[op]:
+            return False
     return True
 
 
