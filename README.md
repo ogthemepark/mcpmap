@@ -114,6 +114,35 @@ Flags:
 
 ---
 
+## Shodan discovery (optional)
+
+`mcpmap` can pull candidate MCP servers from [Shodan](https://www.shodan.io/) instead of (or alongside) active scanning. This is gated behind the `shodan` extra and a Shodan API key.
+
+**Get an API key.** Shodan's search API is **not free** — a free account only gives you browser search. You need at minimum the one-time **Membership** plan (advertised at \$49, frequently on sale to \$5; check [the pricing page](https://www.shodan.io/pricing)). `.edu` email holders can request a free upgrade.
+
+**Configure.**
+
+```bash
+pip install -e ".[shodan]"          # or: uv sync --extra shodan
+export SHODAN_API_KEY="<your-key>"
+```
+
+**Use it.**
+
+```bash
+# Discover only (one query, one credit):
+mcpmap discover '"Model Context Protocol"' --shodan
+
+# Full pipeline via Shodan (note the shodan: prefix on the target):
+mcpmap scan 'shodan:"Model Context Protocol"' --out shodan-scan.json
+```
+
+**Credit burn.** `mcpmap discover --shodan` *without* a query string fires the default sweep — ~26 categorized queries from [`data/shodan_filters.json`](data/shodan_filters.json) (core MCP terms, transport markers, endpoints, frameworks). That's ~26 query credits per run. The \$5 Membership tier starts with 100. Pass an explicit query (as shown above) to burn just one.
+
+**Authorization.** Shodan returns real internet-facing hosts. `mcpmap scan` then sends probe traffic and (unless `--passive`) intrusive payloads to those hosts. **Only scan systems you have written permission to test.** See [`docs/ETHICS.md`](docs/ETHICS.md).
+
+---
+
 ## How it works
 
 The whole tool is a three-stage async pipeline (`src/mcpmap/pipeline.py`):
