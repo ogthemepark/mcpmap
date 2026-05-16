@@ -54,7 +54,17 @@ Two networking modes for reaching targets from inside the container:
     fingerprint http://mcp-cve-figma:8000/mcp
   ```
 
-### From source (pip, editable)
+### From source with [uv](https://docs.astral.sh/uv/) (fastest)
+
+```bash
+git clone https://github.com/<you>/mcpmap && cd mcpmap
+uv sync                              # installs everything from uv.lock
+uv run mcpmap --help                 # run it
+```
+
+That's it. `uv sync` creates `.venv/` and installs the locked dependencies; `uv run` executes inside that venv without you activating it.
+
+### From source with pip
 
 ```bash
 git clone https://github.com/<you>/mcpmap && cd mcpmap
