@@ -33,14 +33,24 @@ ALL_CHECKS = [
 @pytest.mark.asyncio
 async def test_lab_discovers_all_ten_servers():
     targets = await active_discover("127.0.0.1", ports=list(range(8001, 8011)))
-    assert len(targets) >= 9
+    # All 10 lab servers are discoverable. mcp-audience-broken (8002) and
+    # mcp-origin-permissive (8003) allow initialize without credentials so the
+    # TCP→HTTP→initialize pipeline can confirm them.
+    assert len(targets) == 10, f"expected 10 lab servers, got {len(targets)}: {[(t.port, t.path_hint) for t in targets]}"
 
 
 async def _enrich(url: str) -> Server:
     res = await initialize(url)
     assert res, f"no init: {url}"
     info = ServerInfo(**(res.get("serverInfo") or {}))
-    s = Server(url=url, server_info=info, capabilities=res.get("capabilities", {}), protocol_version=res.get("protocolVersion"))
+    detected_transport = res.pop("_mcpmap_transport", "streamable-http")
+    s = Server(
+        url=url,
+        server_info=info,
+        capabilities=res.get("capabilities", {}),
+        protocol_version=res.get("protocolVersion"),
+        transport=detected_transport,
+    )
     s.fingerprint_id = match_fingerprint(info, port=int(url.rsplit(':', 1)[1].split('/')[0]))
     import aiohttp
     async with aiohttp.ClientSession() as sess:
@@ -57,13 +67,11 @@ async def _enrich(url: str) -> Server:
 async def test_each_check_fires_at_least_once():
     fired: set[str] = set()
     for port in range(8001, 8011):
-        url = f"http://127.0.0.1:{port}/mcp"
+        url = f"http://127.0.0.1:{port}/sse" if port == 8008 else f"http://127.0.0.1:{port}/mcp"
         try:
             srv = await _enrich(url)
         except AssertionError:
             continue
-        if port == 8008:
-            srv.transport = "http+sse"
         findings = await run_checks(srv, ALL_CHECKS, passive=False)
         for f in findings:
             fired.add(f.check)

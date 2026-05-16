@@ -91,6 +91,29 @@ async def http_paths_alive(
     return [p for p in results if p is not None]
 
 
+async def _sse_probe(url: str, timeout: float = 3.0) -> bool:
+    """Return True if `url` responds to GET with an SSE stream that opens.
+    Used as a fallback for legacy http+sse MCP transports where POST /sse 405s.
+    """
+    timeout_cfg = aiohttp.ClientTimeout(total=timeout)
+    headers = {"Accept": "text/event-stream"}
+    try:
+        async with aiohttp.ClientSession(timeout=timeout_cfg, connector=aiohttp.TCPConnector(ssl=False)) as session:
+            async with session.get(url, headers=headers) as r:
+                if r.status >= 400:
+                    return False
+                ctype = r.headers.get("content-type", "")
+                if "text/event-stream" not in ctype:
+                    return False
+                # Read at most one frame's worth of bytes to confirm the stream opens
+                chunk = await r.content.read(4096)
+                has_data = b"data:" in chunk
+                r.close()  # don't drain the infinite stream — close the underlying connection
+                return has_data
+    except Exception:
+        return False
+
+
 from mcpmap.discover.handshake import initialize
 from mcpmap.models import Target
 
@@ -115,4 +138,10 @@ async def active_discover(
             if await initialize(url) is not None:
                 confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
                 break  # one path per (host, port) is enough
+            # Fallback for legacy http+sse MCP transports (POST /sse → 405).
+            # Note: a non-MCP SSE endpoint at /sse would also pass this gate;
+            # acceptable for v1 — audit checks reject non-MCP servers later.
+            if p.endswith("/sse") and await _sse_probe(url):
+                confirmed.append(Target(host=host, port=port, path_hint=p, source="active"))
+                break
     return confirmed

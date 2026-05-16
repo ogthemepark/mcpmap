@@ -7,13 +7,16 @@ async def handle(request):
     body = await request.json()
     rid = body.get("id", 1)
     method = body.get("method")
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return web.json_response({"jsonrpc": "2.0", "id": rid, "error": {"code": -32001, "message": "auth required"}}, status=401)
     if method == "initialize":
+        # initialize is allowed without auth so discovery (and _enrich) can confirm this is MCP.
         return web.json_response({"jsonrpc": "2.0", "id": rid, "result": {
             "protocolVersion": "2025-11-25", "capabilities": {"tools": {}},
             "serverInfo": {"name": "mcp-audience-broken", "version": "0.0.1"}}})
+    # All other methods require *some* Bearer token (presence only — audience is not validated).
+    # This makes AUTH-002 fire: no-token → 401, bogus-token → 2xx.
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return web.json_response({"jsonrpc": "2.0", "id": rid, "error": {"code": -32001, "message": "auth required"}}, status=401)
     if method == "tools/list":
         return web.json_response({"jsonrpc": "2.0", "id": rid, "result": {"tools": TOOLS}})
     return web.json_response({"jsonrpc": "2.0", "id": rid, "error": {"code": -32601}})
